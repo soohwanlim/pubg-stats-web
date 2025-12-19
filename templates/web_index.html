@@ -100,10 +100,12 @@
             font-size: 80px;
             font-weight: 700;
             margin-bottom: 20px;
-            background: linear-gradient(135deg, #fff 30%, #999 100%);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
+            color: #fff;
             display: inline-block;
+        }
+
+        .main-logo span {
+            color: #00bcd4;
         }
 
         .search-box {
@@ -391,7 +393,7 @@
     <div class="container">
 
         <section class="hero-section">
-            <div class="main-logo">KDlog</div>
+            <div class="main-logo">KD<span>log</span></div>
             <form action="/stats" method="get" class="search-box" id="searchForm">
                 <div id="platformToggle" class="platform-toggle" onclick="togglePlatform()">
                     STEAM <span style="font-size:12px;">↻</span>
