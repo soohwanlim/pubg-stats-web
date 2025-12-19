@@ -1,0 +1,786 @@
+<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+    <meta charset="UTF-8">
+    <title>PUBG WEB LIVE DASHBOARD</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js"></script>
+    <style>
+        /* 기존 CSS와 동일 (디자인 유지) */
+        :root {
+            --bg-color: #0d0d0d;
+            --card-bg: #1a1a1a;
+            --text-main: #eee;
+            --accent: #00ff00;
+            --p-alive: #22c55e;
+            --p-knock: #eab308;
+            --p-reviv: #06b6d4;
+            --p-dead: #4b5563;
+            --p-empty: #262626;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            font-family: 'Noto Sans KR', sans-serif;
+            margin: 0;
+            margin: 0;
+            padding-top: 80px;
+            /* Space for fixed header */
+            padding-left: 20px;
+            padding-right: 20px;
+            padding-bottom: 20px;
+            overflow-y: scroll;
+        }
+
+        h1 {
+            margin: 0;
+            font-size: 24px;
+            font-weight: 800;
+            color: #ffffff;
+            letter-spacing: 1px;
+        }
+
+        /* Header CSS (Standardized) */
+        header {
+            width: 100%;
+            height: 60px;
+            background-color: #111114;
+            border-bottom: 1px solid #2a2a2e;
+            display: flex;
+            align-items: center;
+            padding: 0 40px;
+            position: fixed;
+            top: 0;
+            left: 0;
+            /* Fix for body padding offset */
+            z-index: 100;
+        }
+
+        .nav-left {
+            display: flex;
+            align-items: center;
+            gap: 40px;
+        }
+
+        .logo {
+            font-family: 'Rajdhani', sans-serif;
+            font-size: 24px;
+            font-weight: 700;
+            color: #fff;
+            letter-spacing: 1px;
+            display: block;
+            /* Ensure it behaves */
+            text-decoration: none;
+        }
+
+        .logo span {
+            color: #00bcd4;
+        }
+
+        .nav-menu {
+            display: block;
+            /* Default is block for nav, or flex if we explicitly set it on .nav-left child? Index uses simple anchors inside nav. */
+            /* Index CSS says .nav-menu a { ... } but doesn't explicitly style .nav-menu container flex unless inherited? 
+               Wait, index.html structure is: <div class="nav-left"> <a class="logo"></a> <nav class="nav-menu"> <a>...</a> </nav> </div>
+               And .nav-left is flex. So .nav-menu is a flex item. 
+               Let's just copy the exact CSS from Index to be safe.
+            */
+        }
+
+        /* Re-copying Index CSS strictly */
+        .nav-menu a {
+            font-size: 15px;
+            color: #999;
+            font-weight: 500;
+            margin-right: 20px;
+            text-decoration: none;
+            transition: 0.2s;
+        }
+
+        .nav-menu a:hover,
+        .nav-menu a.active {
+            color: #fff;
+        }
+
+
+        .controls input[type="file"] {
+            display: none;
+        }
+
+        .controls button {
+            background: #333;
+            color: #fff;
+            border: 1px solid #555;
+            padding: 8px 16px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: bold;
+            margin-left: 5px;
+            transition: background 0.2s;
+        }
+
+        .controls button:hover {
+            background: #444;
+            border-color: #777;
+        }
+
+        .controls button.running {
+            background: #000;
+            color: #777;
+            border-color: #222;
+            box-shadow: inset 0 3px 6px rgba(0, 0, 0, 0.9);
+        }
+
+        .controls button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .sector-container {
+            margin-bottom: 30px;
+        }
+
+        .sector-title {
+            font-size: 16px;
+            font-weight: bold;
+            color: #888;
+            border-bottom: 2px solid #333;
+            padding-bottom: 5px;
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+            user-select: none;
+        }
+
+        .sector-title .badge {
+            font-size: 12px;
+            background: #333;
+            color: #fff;
+            padding: 2px 8px;
+            border-radius: 10px;
+            margin-left: 10px;
+        }
+
+        .sector-title.toggleable {
+            cursor: pointer;
+            transition: color 0.2s;
+        }
+
+        .sector-title.toggleable:hover {
+            color: #fff;
+            border-bottom-color: #555;
+        }
+
+        .arrow-icon {
+            display: inline-block;
+            width: 20px;
+            text-align: center;
+            transition: transform 0.2s;
+            margin-right: 5px;
+        }
+
+        .arrow-icon.collapsed {
+            transform: rotate(-90deg);
+        }
+
+        .dashboard-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+            gap: 10px;
+        }
+
+        .team-card {
+            background: #2a2a2a;
+            border: 1px solid #444;
+            border-radius: 6px;
+            padding: 10px;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            transition: all 0.3s ease;
+            position: relative;
+        }
+
+        .team-card.danger {
+            border-color: var(--p-knock);
+            background: #221e10;
+        }
+
+        .pin-btn {
+            position: absolute;
+            top: 8px;
+            left: 8px;
+            font-size: 14px;
+            cursor: pointer;
+            color: #555;
+            transition: opacity 0.2s, color 0.2s;
+            z-index: 5;
+            opacity: 0;
+        }
+
+        .pin-btn:hover {
+            color: #fff;
+        }
+
+        .pin-btn.active {
+            color: gold;
+            text-shadow: 0 0 5px orange;
+            opacity: 1;
+        }
+
+        .team-card:hover .pin-btn {
+            opacity: 1;
+        }
+
+        .close-btn {
+            position: absolute;
+            top: -8px;
+            right: -8px;
+            width: 20px;
+            height: 20px;
+            background: #cc0000;
+            color: white;
+            border-radius: 50%;
+            font-size: 14px;
+            font-weight: bold;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            cursor: pointer;
+            opacity: 0;
+            transition: opacity 0.2s;
+            z-index: 10;
+        }
+
+        .team-card:hover .close-btn {
+            opacity: 1;
+        }
+
+        .card-top {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding-left: 15px;
+        }
+
+        .team-logo {
+            height: 24px;
+            width: auto;
+            max-width: 80px;
+            object-fit: contain;
+        }
+
+        .team-id-text {
+            font-size: 18px;
+            font-weight: 900;
+            color: #fff;
+        }
+
+        .team-kill {
+            font-size: 12px;
+            font-weight: bold;
+            background: #000;
+            padding: 2px 5px;
+            border-radius: 3px;
+            color: #ccc;
+        }
+
+        .player-box-container {
+            display: flex;
+            gap: 4px;
+            height: 18px;
+        }
+
+        .p-box {
+            flex: 1;
+            background: var(--p-empty);
+            border-radius: 2px;
+            cursor: pointer;
+        }
+
+        .p-box:hover {
+            opacity: 0.8;
+        }
+
+        .p-box.alive {
+            background: var(--p-alive);
+        }
+
+        .p-box.knock {
+            background: var(--p-knock);
+            animation: blink-yellow 1s infinite alternate;
+        }
+
+        .p-box.reviv {
+            background: var(--p-reviv);
+            animation: blink-cyan 0.5s infinite alternate;
+            box-shadow: 0 0 6px var(--p-reviv);
+        }
+
+        .p-box.dead {
+            background: var(--p-dead);
+        }
+
+        @keyframes blink-yellow {
+            from {
+                opacity: 1;
+            }
+
+            to {
+                opacity: 0.5;
+            }
+        }
+
+        @keyframes blink-cyan {
+            from {
+                opacity: 1;
+            }
+
+            to {
+                opacity: 0.4;
+            }
+        }
+
+        .log-overlay {
+            position: fixed;
+            bottom: 10px;
+            right: 10px;
+            width: 300px;
+            height: 150px;
+            background: rgba(0, 0, 0, 0.85);
+            border: 1px solid #444;
+            border-radius: 6px;
+            padding: 10px;
+            overflow-y: auto;
+            font-size: 12px;
+            font-family: monospace;
+            z-index: 999;
+        }
+
+        .log-line {
+            margin-bottom: 2px;
+        }
+
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.9);
+            z-index: 2000;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .modal-content {
+            background: #111;
+            border: 2px solid #444;
+            padding: 20px;
+            border-radius: 10px;
+            max-width: 90%;
+            max-height: 90%;
+            overflow-y: auto;
+            text-align: center;
+        }
+
+        #statusMenu {
+            display: none;
+            position: fixed;
+            background: #222;
+            border: 1px solid #555;
+            z-index: 3000;
+            border-radius: 4px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.5);
+        }
+
+        .status-option {
+            padding: 8px 12px;
+            color: #fff;
+            cursor: pointer;
+            font-size: 13px;
+            border-bottom: 1px solid #333;
+        }
+
+        .status-option:last-child {
+            border-bottom: none;
+        }
+
+        .status-option:hover {
+            background: #444;
+        }
+
+        .setting-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
+            gap: 10px;
+            margin: 20px 0;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+
+        .setting-item {
+            background: #222;
+            padding: 5px;
+            border-radius: 4px;
+            border: 1px solid #333;
+        }
+
+        .setting-item label {
+            display: block;
+            font-size: 12px;
+            color: #aaa;
+            margin-bottom: 3px;
+        }
+
+        .setting-squad-container {
+            display: flex;
+            gap: 4px;
+            cursor: pointer;
+            justify-content: center;
+        }
+
+        .setting-slot {
+            width: 15px;
+            height: 15px;
+            background: #333;
+            border: 1px solid #555;
+            border-radius: 2px;
+            transition: 0.2s;
+        }
+
+        .setting-slot.active {
+            background: var(--p-alive);
+            border-color: var(--p-alive);
+            box-shadow: 0 0 5px rgba(34, 197, 94, 0.5);
+        }
+
+        .setting-slot.active {
+            background: var(--p-alive);
+            border-color: var(--p-alive);
+            box-shadow: 0 0 5px rgba(34, 197, 94, 0.5);
+        }
+
+
+
+        /* Adjust body for fixed header */
+        body {
+            padding-top: 80px;
+        }
+
+        /* Dashboard Controls Bar */
+        .controls-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding-bottom: 15px;
+            border-bottom: 1px solid #333;
+            margin-bottom: 20px;
+        }
+    </style>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700&family=Rajdhani:wght@600;700&display=swap"
+        rel="stylesheet">
+
+<body>
+    <div id="roiModal" class="modal-overlay">
+        <div class="modal-content" style="display:inline-block;">
+            <h2 style="color:var(--accent);">영역 확인</h2>
+            <img id="roiCheckImage" src=""
+                style="max-width:800px; max-height:60vh; border:2px solid #555; margin:15px 0;">
+            <br>
+            <button class="controls" onclick="confirmROI(true)"
+                style="background:var(--accent); color:black; margin-top:10px;">[예, 맞습니다]</button>
+            <button class="controls" onclick="confirmROI(false)"
+                style="background:#dc2626; margin-top:10px;">[재업로드]</button>
+        </div>
+    </div>
+
+    <div id="statusMenu">
+        <div class="status-option" onclick="applyStatusChange('alive')">🟩 생존</div>
+        <div class="status-option" onclick="applyStatusChange('knock')">🟨 기절</div>
+        <div class="status-option" onclick="applyStatusChange('dead')">⬛ 사망</div>
+    </div>
+
+    <div id="settingsModal" class="modal-overlay">
+        <div class="modal-content" style="width: 600px; text-align:left;">
+            <h2 style="color:var(--accent); margin-top:0; border-bottom:1px solid #333; padding-bottom:10px;">게임 설정</h2>
+            <div style="margin-bottom: 20px;">
+                <label style="color:#fff; font-weight:bold;">총 팀 개수: </label>
+                <input type="number" id="totalTeams" value="31"
+                    style="background:#000; color:#fff; border:1px solid #555; padding:5px; width:60px; text-align:center;"
+                    onchange="generateTeamInputs()">
+            </div>
+            <h3 style="color:#aaa; font-size:14px;">팀별 스쿼드 인원</h3>
+            <div class="setting-grid" id="teamSettingsGrid"></div>
+            <div style="text-align:right; margin-top:20px;">
+                <button class="controls" onclick="applySettings()" style="background:var(--accent); color:black;">적용 및
+                    리셋</button>
+                <button class="controls" onclick="closeSettings()" style="background:#333; color:white;">취소</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Global Navigation -->
+    <header>
+        <div class="nav-left">
+            <a href="/" class="logo">GG<span>.gg</span></a>
+            <nav class="nav-menu">
+                <a href="/live" class="active">킬로그 분석 (Live)</a>
+                <span style="margin: 0 10px; color: #333;">|</span>
+                <a href="/stats">전적 검색</a>
+                <span style="margin: 0 10px; color: #333;">|</span>
+                <a href="/ranking">랭킹</a>
+            </nav>
+        </div>
+    </header>
+
+    <!-- Dashboard Controls -->
+    <div class="controls-bar">
+        <h1>
+            PUBG WEB LIVE DASHBOARD
+            <span id="appStatus" style="font-size:14px; color:#ff4444; margin-left:15px; font-weight:normal;"></span>
+        </h1>
+        <div class="controls">
+            <input type="file" id="fileInput" accept="image/*" onchange="uploadImage()">
+            <button onclick="openSettings()">⚙️ 설정</button>
+            <button onclick="document.getElementById('fileInput').click()">이미지 설정</button>
+            <button id="btnStart" onclick="setRunningState(true); sendCommand('start_analysis')">분석 시작</button>
+            <button onclick="setRunningState(false); sendCommand('stop_analysis')">일시 정지</button>
+            <button onclick="setRunningState(false); sendCommand('reset_game')">게임 종료(리셋)</button>
+        </div>
+    </div>
+
+    <div class="sector-container">
+        <div class="sector-title" style="color:#fff;">
+            <span class="arrow-icon">▼</span> 1km 이내 (교전 중) <span class="badge" id="count-s1">0</span>
+        </div>
+        <div class="dashboard-grid" id="board-s1"></div>
+    </div>
+
+    <div class="sector-container">
+        <div class="sector-title" style="color:#aaa;">
+            <span class="arrow-icon">▼</span> 1km 외 / 특이사항 <span class="badge" id="count-s2">0</span>
+        </div>
+        <div class="dashboard-grid" id="board-s2"></div>
+    </div>
+
+    <div class="sector-container">
+        <div class="sector-title toggleable" onclick="toggleSector(3)" style="color:#555;">
+            <span class="arrow-icon collapsed" id="arrow-s3">▼</span>
+            교전 기록 없음 / 정보 부족 <span class="badge" id="count-s3">0</span>
+        </div>
+        <div class="dashboard-grid" id="board-s3" style="display:none;"></div>
+    </div>
+
+    <div class="sector-container">
+        <div class="sector-title toggleable" onclick="toggleSector(4)" style="color:#ef4444;">
+            <span class="arrow-icon collapsed" id="arrow-s4">▼</span>
+            전멸 가능성 높음 (4인 사망) <span class="badge" id="count-s4">0</span>
+        </div>
+        <div class="dashboard-grid" id="board-s4" style="display:none;"></div>
+    </div>
+
+    <!-- Log Overlay Removed per user request -->
+
+    <script>
+        // [중요] 웹 호스팅 버전은 무조건 사용자의 로컬 앱(localhost:5000)을 바라봅니다.
+        const LOCAL_API = 'http://localhost:5000';
+        let socket = null;
+
+        try {
+            socket = io(LOCAL_API);
+        } catch (e) {
+            console.error("Local app not running");
+        }
+
+        if (socket) {
+            socket.on('connect', () => {
+                console.log("[SYS] 로컬 앱에 연결되었습니다.");
+                document.getElementById('appStatus').innerText = ""; // Clear error message
+                socket.emit('request_state');
+            });
+            socket.on('connect_error', () => {
+                console.error("[ERR] 로컬 앱을 찾을 수 없습니다.");
+                document.getElementById('appStatus').innerText = "(앱이 없습니다. 앱을 다운로드하고 실행해주세요)";
+            });
+
+            socket.on('log', (data) => console.log(data.msg));
+            socket.on('update_board', (data) => { renderAllBoards(data.teams, data.pinned); });
+            socket.on('clear_logs', () => { console.clear(); });
+            socket.on('roi_image', (data) => {
+                document.getElementById('roiCheckImage').src = data;
+                document.getElementById('roiModal').style.display = 'flex';
+            });
+        } else {
+            console.error("Socket.IO 로드 실패");
+        }
+
+        // 이하 JS 함수들은 기존 live.html과 동일 (UI 로직)
+        function toggleSector(num) {
+            const board = document.getElementById(`board-s${num}`);
+            const arrow = document.getElementById(`arrow-s${num}`);
+            if (board.style.display === 'none') {
+                board.style.display = 'grid'; arrow.classList.remove('collapsed');
+            } else {
+                board.style.display = 'none'; arrow.classList.add('collapsed');
+            }
+        }
+        function deleteTeam(id) { socket && socket.emit('manual_delete_team', { id: id }); }
+        function togglePin(e, id) { e.stopPropagation(); socket && socket.emit('toggle_pin_team', { id: id }); }
+
+        function showStatusMenu(e, id, currentStatus) {
+            e.stopPropagation();
+            selectedTeamId = id; selectedOldStatus = currentStatus;
+            const menu = document.getElementById('statusMenu');
+            menu.style.display = 'block'; menu.style.left = e.pageX + 'px'; menu.style.top = e.pageY + 'px';
+        }
+        function applyStatusChange(newStatus) {
+            if (selectedTeamId && selectedOldStatus && socket) {
+                socket.emit('manual_update_status', { id: selectedTeamId, old: selectedOldStatus, new: newStatus });
+            }
+            document.getElementById('statusMenu').style.display = 'none';
+        }
+        document.addEventListener('click', function (e) {
+            const menu = document.getElementById('statusMenu');
+            if (menu.style.display === 'block') menu.style.display = 'none';
+        });
+
+        function openSettings() { generateTeamInputs(); document.getElementById('settingsModal').style.display = 'flex'; }
+        function closeSettings() { document.getElementById('settingsModal').style.display = 'none'; }
+        function generateTeamInputs() {
+            const count = document.getElementById('totalTeams').value;
+            const grid = document.getElementById('teamSettingsGrid');
+            grid.innerHTML = '';
+            for (let i = 1; i <= count; i++) {
+                grid.innerHTML += `<div class="setting-item"><label>${i} TEAM</label><div class="setting-squad-container" id="squad-set-${i}" data-size="4"><div class="setting-slot active" onclick="setSquadSize(${i}, 1)"></div><div class="setting-slot active" onclick="setSquadSize(${i}, 2)"></div><div class="setting-slot active" onclick="setSquadSize(${i}, 3)"></div><div class="setting-slot active" onclick="setSquadSize(${i}, 4)"></div></div></div>`;
+            }
+        }
+        function setSquadSize(teamId, size) {
+            const container = document.getElementById(`squad-set-${teamId}`);
+            container.dataset.size = size;
+            const slots = container.children;
+            for (let i = 0; i < 4; i++) { if (i < size) slots[i].classList.add('active'); else slots[i].classList.remove('active'); }
+        }
+        function applySettings() {
+            const count = document.getElementById('totalTeams').value;
+            const sizes = {};
+            for (let i = 1; i <= count; i++) sizes[i] = document.getElementById(`squad-set-${i}`).dataset.size;
+            if (socket) socket.emit('apply_settings', { totalTeams: count, squadSizes: sizes });
+            closeSettings();
+        }
+
+        function renderAllBoards(teams, pinnedId) {
+            const s1 = document.getElementById('board-s1'), s2 = document.getElementById('board-s2'), s3 = document.getElementById('board-s3'), s4 = document.getElementById('board-s4');
+            s1.innerHTML = ''; s2.innerHTML = ''; s3.innerHTML = ''; s4.innerHTML = '';
+
+            let allTeams = Object.values(teams);
+            let listS1 = [], listS2 = [], listS3 = [], listS4 = [];
+            let pinnedTeam = null;
+
+            allTeams.forEach(team => {
+                if (team.id === pinnedId) pinnedTeam = team;
+                else {
+                    if (team.sector === 4) listS4.push(team);
+                    else if (team.sector === 3) listS3.push(team);
+                    else if (team.sector === 2) listS2.push(team);
+                    else listS1.push(team);
+                }
+            });
+
+            const sortFn = (a, b) => {
+                let kA = a.knocks.length, kB = b.knocks.length;
+                if (kA !== kB) return kB - kA;
+                if (a.kills !== b.kills) return b.kills - a.kills;
+                return parseInt(a.id) - parseInt(b.id);
+            };
+            const recentSort = (a, b) => (b.last_active || 0) - (a.last_active || 0);
+
+            listS1.sort(recentSort);
+            listS2.sort(sortFn); listS3.sort(sortFn); listS4.sort(sortFn);
+
+            if (pinnedTeam) listS1.unshift(pinnedTeam);
+
+            listS1.forEach(t => s1.insertAdjacentHTML('beforeend', createCardHTML(t, pinnedId)));
+            listS2.forEach(t => s2.insertAdjacentHTML('beforeend', createCardHTML(t, pinnedId)));
+            listS3.forEach(t => s3.insertAdjacentHTML('beforeend', createCardHTML(t, pinnedId)));
+            listS4.forEach(t => s4.insertAdjacentHTML('beforeend', createCardHTML(t, pinnedId)));
+
+            document.getElementById('count-s1').innerText = listS1.length;
+            document.getElementById('count-s2').innerText = listS2.length;
+            document.getElementById('count-s3').innerText = listS3.length;
+            document.getElementById('count-s4').innerText = listS4.length;
+        }
+
+        function createCardHTML(team, pinnedId) {
+            let kCount = team.knocks.length;
+            let revivCount = team.knocks.filter(k => k.status === 'REVIVABLE').length;
+            let normalKnock = kCount - revivCount;
+            let deadCount = team.dead;
+            let aliveCount = team.alive;
+
+            let cardClass = ''; if (kCount > 0) cardClass = 'danger'; if (aliveCount === 0 && kCount === 0) cardClass = 'critical';
+
+            // 이미지 로직
+            let imgSrc = `static/assets/${team.id}.png`;
+            let displayTitle = `<img src="${imgSrc}" class="team-logo" onerror="this.style.display='none'; this.nextElementSibling.style.display='inline';">
+                                <span class="team-id-text" style="display:none;">${team.id} TEAM</span>`;
+
+            let bars = '';
+            if (team.sector === 4) {
+                for (let i = 0; i < normalKnock; i++) bars += `<div class="p-box knock" onclick="showStatusMenu(event, '${team.id}', 'knock')"></div>`;
+                for (let i = 0; i < revivCount; i++) bars += `<div class="p-box reviv" onclick="showStatusMenu(event, '${team.id}', 'reviv')"></div>`;
+                for (let i = 0; i < deadCount; i++) bars += `<div class="p-box dead" onclick="showStatusMenu(event, '${team.id}', 'dead')"></div>`;
+            } else {
+                for (let i = 0; i < aliveCount; i++) bars += `<div class="p-box alive" onclick="showStatusMenu(event, '${team.id}', 'alive')"></div>`;
+                for (let i = 0; i < normalKnock; i++) bars += `<div class="p-box knock" onclick="showStatusMenu(event, '${team.id}', 'knock')"></div>`;
+                for (let i = 0; i < revivCount; i++) bars += `<div class="p-box reviv" onclick="showStatusMenu(event, '${team.id}', 'reviv')"></div>`;
+                for (let i = 0; i < deadCount; i++) bars += `<div class="p-box dead" onclick="showStatusMenu(event, '${team.id}', 'dead')"></div>`;
+            }
+            let maxSize = team.max_size || 4;
+            let currentBarCount = (team.sector === 4) ? (normalKnock + revivCount + deadCount) : (aliveCount + normalKnock + revivCount + deadCount);
+            for (let i = currentBarCount; i < maxSize; i++) bars += '<div class="p-box" style="background:#333; cursor:default;"></div>';
+            for (let i = maxSize; i < 4; i++) bars += '<div class="p-box" style="background:#0d0d0d; border:none; cursor:default;"></div>';
+
+            let pinClass = (team.id === pinnedId) ? 'pin-btn active' : 'pin-btn';
+
+            return `
+                <div class="team-card ${cardClass}">
+                    <span class="${pinClass}" onclick="togglePin(event, '${team.id}')">📌</span>
+                    <span class="close-btn" onclick="deleteTeam('${team.id}')">×</span>
+                    <div class="card-top">
+                        <div style="display:flex; align-items:center; gap:5px;">${displayTitle}</div>
+                        <span class="team-kill">KILL: ${team.kills}</span>
+                    </div>
+                    <div class="player-box-container">${bars}</div>
+                </div>
+            `;
+        }
+
+        function addLog(msg, color) {
+            console.log(`[${color}] ${msg}`);
+        }
+        function sendCommand(cmd) { if (socket) socket.emit(cmd); }
+        async function uploadImage() {
+            const input = document.getElementById('fileInput'); if (input.files.length === 0) return;
+            const formData = new FormData(); formData.append('file', input.files[0]);
+            try {
+                const res = await fetch(`${LOCAL_API}/upload`, { method: 'POST', body: formData });
+                const j = await res.json();
+                if (j.success) { if (j.image_data) { document.getElementById('roiCheckImage').src = j.image_data; document.getElementById('roiModal').style.display = 'flex'; } else { document.getElementById('roiCheckImage').src = LOCAL_API + "/" + j.image_url; document.getElementById('roiModal').style.display = 'flex'; } }
+                else alert(j.msg);
+            } catch (e) { alert("연결 실패 (로컬 앱 확인 필요)"); }
+        }
+        function confirmROI(ok) { document.getElementById('roiModal').style.display = 'none'; if (ok) { document.getElementById('btnStart').disabled = false; document.getElementById('btnStart').innerText = "분석 시작 (준비됨)"; addLog("[SYS] 준비 완료.", "lime"); } else document.getElementById('fileInput').value = ""; }
+
+        function setRunningState(isRunning) {
+            const btn = document.getElementById('btnStart');
+            if (isRunning) btn.classList.add('running');
+            else btn.classList.remove('running');
+        }
+    </script>
+</body>
+
+</html>

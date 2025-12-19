@@ -1,0 +1,483 @@
+<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GG.gg - Battlegrounds Tracker</title>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700&family=Rajdhani:wght@600;700&display=swap"
+        rel="stylesheet">
+    <style>
+        /* --- 1. 초기화 및 기본 스타일 --- */
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            background-color: #0a0a0c;
+            color: #e0e0e0;
+            font-family: 'Noto Sans KR', sans-serif;
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+        }
+
+        a {
+            text-decoration: none;
+            color: inherit;
+            transition: 0.2s;
+        }
+
+        ul {
+            list-style: none;
+        }
+
+        /* --- 2. 헤더 --- */
+        header {
+            width: 100%;
+            height: 60px;
+            background-color: #111114;
+            border-bottom: 1px solid #2a2a2e;
+            display: flex;
+            align-items: center;
+            padding: 0 40px;
+            position: fixed;
+            top: 0;
+            z-index: 100;
+        }
+
+        .nav-left {
+            display: flex;
+            align-items: center;
+            gap: 40px;
+        }
+
+        .logo {
+            font-family: 'Rajdhani', sans-serif;
+            font-size: 24px;
+            font-weight: 700;
+            color: #fff;
+            letter-spacing: 1px;
+        }
+
+        .logo span {
+            color: #00bcd4;
+        }
+
+        .nav-menu a {
+            font-size: 15px;
+            color: #999;
+            font-weight: 500;
+            margin-right: 20px;
+        }
+
+        .nav-menu a:hover,
+        .nav-menu a.active {
+            color: #fff;
+        }
+
+        /* --- 3. 메인 컨테이너 --- */
+        .container {
+            width: 100%;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 100px 20px 40px;
+            flex: 1;
+        }
+
+        /* --- 4. 히어로 섹션 --- */
+        .hero-section {
+            text-align: center;
+            margin-bottom: 60px;
+            padding-top: 40px;
+        }
+
+        .main-logo {
+            font-family: 'Rajdhani', sans-serif;
+            font-size: 80px;
+            font-weight: 700;
+            margin-bottom: 20px;
+            background: linear-gradient(135deg, #fff 30%, #999 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            display: inline-block;
+        }
+
+        .search-box {
+            max-width: 600px;
+            margin: 0 auto;
+            background: #1c1c1f;
+            border: 1px solid #333;
+            border-radius: 50px;
+            padding: 5px 10px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            color: #777;
+            font-size: 14px;
+        }
+
+        .platform-toggle {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            gap: 8px;
+            color: #fff;
+            /* White for Steam default */
+            font-weight: 700;
+            font-size: 16px;
+            cursor: pointer;
+            padding: 10px 15px;
+            border-right: 1px solid #333;
+            margin-right: 10px;
+            user-select: none;
+            width: 110px;
+            justify-content: center;
+        }
+
+        .platform-toggle:hover {
+            color: #fff;
+        }
+
+        .search-input {
+            background: transparent;
+            border: none;
+            color: #fff;
+            width: 100%;
+            outline: none;
+            font-size: 16px;
+            font-family: 'Noto Sans KR', sans-serif;
+        }
+
+        .search-box:hover {
+            border-color: #555;
+        }
+
+        /* --- 5. 콘텐츠 그리드 --- */
+        .content-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 24px;
+            align-items: stretch;
+        }
+
+        @media (max-width: 768px) {
+            .content-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        /* 공통 카드 스타일 */
+        .card {
+            background-color: #1c1c1f;
+            border-radius: 8px;
+            padding: 24px;
+            border: 1px solid #2a2a2e;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            border-bottom: 1px solid #333;
+            padding-bottom: 15px;
+        }
+
+        .card-title {
+            font-size: 18px;
+            font-weight: 700;
+            color: #fff;
+        }
+
+        .card-title span {
+            color: #00bcd4;
+        }
+
+        .more-link {
+            font-size: 12px;
+            color: #777;
+        }
+
+        /* 공지사항 리스트 */
+        .notice-list {
+            flex: 1;
+        }
+
+        .notice-list li {
+            display: flex;
+            justify-content: space-between;
+            padding: 14px 0;
+            border-bottom: 1px solid #252528;
+            font-size: 14px;
+            color: #ccc;
+            cursor: pointer;
+        }
+
+        .notice-list li:hover {
+            color: #fff;
+            background: rgba(255, 255, 255, 0.02);
+        }
+
+        .notice-list li:last-child {
+            border-bottom: none;
+        }
+
+        .date {
+            color: #666;
+            font-size: 12px;
+        }
+
+        /* --- 6. 다운로드 및 가이드 영역 --- */
+        .download-area {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            flex: 1;
+        }
+
+        .btn-wrapper {
+            text-align: center;
+        }
+
+        .down-desc {
+            color: #bbb;
+            margin-bottom: 15px;
+            font-size: 14px;
+            line-height: 1.5;
+        }
+
+        .btn-download {
+            background: #00bcd4;
+            color: #000;
+            padding: 16px;
+            border-radius: 6px;
+            font-weight: 700;
+            font-size: 16px;
+            display: block;
+            width: 100%;
+            transition: 0.3s;
+        }
+
+        .btn-download:hover {
+            background: #00e5ff;
+            box-shadow: 0 0 20px rgba(0, 188, 212, 0.3);
+        }
+
+        /* 가이드 박스 스타일 */
+        .guide-box {
+            background-color: #161619;
+            border: 1px solid #333;
+            border-radius: 6px;
+            padding: 20px;
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            /* 내용 중앙 정렬 */
+        }
+
+        .guide-title {
+            color: #fff;
+            font-size: 15px;
+            font-weight: 700;
+            margin-bottom: 15px;
+        }
+
+        .guide-step {
+            display: flex;
+            align-items: start;
+            gap: 10px;
+            margin-bottom: 10px;
+            font-size: 13px;
+            color: #999;
+            line-height: 1.4;
+        }
+
+        .step-num {
+            background: #333;
+            color: #fff;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 11px;
+            font-weight: bold;
+            flex-shrink: 0;
+        }
+
+        /* 주의사항 스타일 (추가됨) */
+        .warning-area {
+            margin-top: 15px;
+            padding-top: 15px;
+            border-top: 1px dashed #444;
+            /* 점선 구분선 */
+        }
+
+        .warning-header {
+            color: #ff6b6b;
+            /* 경고 레드 컬러 */
+            font-size: 13px;
+            font-weight: 700;
+            margin-bottom: 8px;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .warning-list {
+            list-style: none;
+            padding: 0;
+        }
+
+        .warning-list li {
+            font-size: 12px;
+            color: #aaa;
+            margin-bottom: 4px;
+            padding-left: 10px;
+            position: relative;
+            line-height: 1.5;
+        }
+
+        .warning-list li::before {
+            content: '-';
+            position: absolute;
+            left: 0;
+            color: #666;
+        }
+
+        .highlight {
+            color: #e0e0e0;
+            font-weight: 500;
+        }
+
+        /* 강조 텍스트 */
+
+        /* --- 7. 푸터 --- */
+        footer {
+            margin-top: 80px;
+            padding: 40px;
+            text-align: left;
+            color: #555;
+            font-size: 12px;
+            border-top: 1px solid #1a1a1d;
+            width: 100%;
+        }
+    </style>
+</head>
+
+<body>
+
+    <header>
+        <div class="nav-left">
+            <a href="/" class="logo">GG<span>.gg</span></a>
+            <nav class="nav-menu">
+                <a href="/live">킬로그 분석 (Live)</a>
+                <span style="margin: 0 10px; color: #333;">|</span>
+                <a href="/stats">전적 검색</a>
+                <span style="margin: 0 10px; color: #333;">|</span>
+                <a href="/ranking">랭킹</a>
+            </nav>
+        </div>
+    </header>
+
+    <div class="container">
+
+        <section class="hero-section">
+            <div class="main-logo">GG.gg</div>
+            <form action="/stats" method="get" class="search-box" id="searchForm">
+                <div id="platformToggle" class="platform-toggle" onclick="togglePlatform()">
+                    STEAM <span style="font-size:12px;">↻</span>
+                </div>
+                <input type="hidden" name="platform" id="platformInput" value="steam">
+                <input type="text" name="nickname" class="search-input" placeholder="배틀그라운드 닉네임을 입력하세요." required>
+                <button type="submit" style="background:none; border:none; color:#fff; font-size:20px; cursor:pointer;"
+                    id="searchBtn">
+                    🔍
+                </button>
+            </form>
+            <script>
+                function togglePlatform() {
+                    const toggle = document.getElementById('platformToggle');
+                    const input = document.getElementById('platformInput');
+                    const btn = document.getElementById('searchBtn');
+
+                    if (input.value === 'steam') {
+                        input.value = 'kakao';
+                        toggle.innerHTML = 'KAKAO <span style="font-size:12px;">↻</span>';
+                        toggle.style.color = '#facc15'; // Yellow for Kakao
+                        btn.style.color = '#facc15';
+                    } else {
+                        input.value = 'steam';
+                        toggle.innerHTML = 'STEAM <span style="font-size:12px;">↻</span>';
+                        toggle.style.color = '#fff'; // White for Steam
+                        btn.style.color = '#fff';
+                    }
+                }
+            </script>
+        </section>
+
+        <div class="content-grid">
+
+            <div class="card">
+                <div class="card-header">
+                    <h3 class="card-title">📢 PUBG <span>Notice</span></h3>
+                    <a href="#" class="more-link">더보기 ></a>
+                </div>
+                <ul class="notice-list">
+                    {% if notices %}
+                    {% for notice in notices %}
+                    <li onclick="window.open('{{ notice.link }}', '_blank')">
+                        <span>{{ notice.title }}</span>
+                        <span class="date">{{ notice.date }}</span>
+                    </li>
+                    {% endfor %}
+                    {% else %}
+                    <li style="justify-content:center; color:#555;">공지사항을 불러오는 중이거나 없습니다.</li>
+                    {% endif %}
+                </ul>
+            </div>
+
+            <div class="card">
+                <div class="card-header">
+                    <h3 class="card-title">📥 Tracker <span>Download</span></h3>
+                </div>
+
+                <div class="download-area">
+                    <div class="btn-wrapper">
+                        <p class="down-desc">
+                            실시간 킬로그 분석을 위해<br>
+                            전용 트래커 앱 설치가 필요합니다.
+                        </p>
+                        <a href="/download" class="btn-download">
+                            WINDOWS 버전 다운로드 (v1.0.0)
+                        </a>
+                        <a href="https://youtube.com" target="_blank" class="btn-download" style="margin-top:15px;">
+                            사용방법 Youtube 보러가기
+                        </a>
+                    </div>
+
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <footer>
+        made by nobonobo<br>
+        Data Based on PUBG OPEN API<br>
+        This site is not affiliated with PUBG Corporation.<br>
+        Contact : swtee0506@gmail.com
+    </footer>
+
+
+</body>
+
+</html>

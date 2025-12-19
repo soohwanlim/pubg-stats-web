@@ -1,0 +1,8 @@
+PUBG_API_KEY.txt
+leaderboard.db
+__pycache__/
+*.pyc
+.DS_Store
+.env
+venv/
+env/

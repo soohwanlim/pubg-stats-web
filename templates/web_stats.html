@@ -1,0 +1,841 @@
+<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GG.gg - Stats Result</title>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700&family=Rajdhani:wght@600;700&display=swap"
+        rel="stylesheet">
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            background-color: #0a0a0c;
+            color: #e0e0e0;
+            font-family: 'Noto Sans KR', sans-serif;
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+        }
+
+        a {
+            text-decoration: none;
+            color: inherit;
+            transition: 0.2s;
+        }
+
+        header {
+            width: 100%;
+            height: 60px;
+            background-color: #111114;
+            border-bottom: 1px solid #2a2a2e;
+            display: flex;
+            align-items: center;
+            padding: 0 40px;
+            position: fixed;
+            top: 0;
+            z-index: 100;
+        }
+
+        .nav-left {
+            display: flex;
+            align-items: center;
+            gap: 40px;
+        }
+
+        .logo {
+            font-family: 'Rajdhani', sans-serif;
+            font-size: 24px;
+            font-weight: 700;
+            color: #fff;
+            letter-spacing: 1px;
+        }
+
+        .logo span {
+            color: #00bcd4;
+        }
+
+        .nav-menu a {
+            font-size: 15px;
+            color: #999;
+            font-weight: 500;
+            margin-right: 20px;
+        }
+
+        .nav-menu a:hover,
+        .nav-menu a.active {
+            color: #fff;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 100px 20px 40px;
+            flex: 1;
+        }
+
+        /* Profile Header with Splits */
+        .profile-card {
+            background: #1c1c1f;
+            border: 1px solid #333;
+            border-radius: 8px;
+            padding: 25px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .profile-left h1 {
+            font-family: 'Rajdhani', sans-serif;
+            font-size: 40px;
+            color: #fff;
+        }
+
+        .profile-left span {
+            background: #333;
+            color: #ccc;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            margin-right: 5px;
+        }
+
+        .split-stats {
+            display: flex;
+            gap: 40px;
+            text-align: right;
+        }
+
+        .split-group h3 {
+            font-size: 14px;
+            color: #888;
+            border-bottom: 1px solid #444;
+            padding-bottom: 5px;
+            margin-bottom: 10px;
+            font-weight: normal;
+        }
+
+        .stat-line {
+            display: flex;
+            gap: 15px;
+            justify-content: flex-end;
+            font-family: 'Rajdhani', sans-serif;
+            font-size: 18px;
+            font-weight: 700;
+            margin-bottom: 3px;
+        }
+
+        .stat-line span.label {
+            font-size: 12px;
+            font-weight: normal;
+            color: #666;
+            align-self: center;
+        }
+
+        .value-hl {
+            color: #00bcd4;
+        }
+
+        .value-warn {
+            color: #aaa;
+        }
+
+        /* Layout Grid */
+        .content-layout {
+            display: flex;
+            gap: 20px;
+            align-items: flex-start;
+        }
+
+        .side-stats {
+            width: 300px;
+            background: #fff;
+            color: #333;
+            border-radius: 4px;
+            border: 1px solid #ccc;
+            flex-shrink: 0;
+        }
+
+        .side-stats-dark {
+            background: #1c1c1f;
+            border: 1px solid #333;
+            color: #fff;
+        }
+
+        /* Side Box Style */
+        .side-content {
+            padding: 20px;
+        }
+
+        .side-header {
+            font-size: 14px;
+            color: #888;
+            border-bottom: 1px solid #333;
+            padding-bottom: 10px;
+            margin-bottom: 15px;
+        }
+
+        .avg-rank-box {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        .avg-rank-val {
+            font-size: 36px;
+            font-weight: 900;
+            color: #fff;
+            margin-bottom: 5px;
+        }
+
+        .avg-rank-val span {
+            font-size: 14px;
+            color: #888;
+            font-weight: normal;
+        }
+
+        .recent-chart {
+            display: flex;
+            gap: 2px;
+            justify-content: center;
+            height: 30px;
+            margin-bottom: 20px;
+        }
+
+        .chart-bar {
+            width: 10px;
+            background: #333;
+            position: relative;
+        }
+
+        .chart-bar.win {
+            background: #22c55e;
+        }
+
+        .chart-bar.top10 {
+            background: #06b6d4;
+        }
+
+        .chart-bar.lose {
+            background: #555;
+        }
+
+        .side-row {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 8px;
+            font-size: 14px;
+        }
+
+        .side-val {
+            font-weight: bold;
+            font-family: 'Rajdhani', sans-serif;
+            font-size: 18px;
+        }
+
+        .side-val.accent {
+            color: #eab308;
+        }
+
+        /* Main List Area */
+        .main-list {
+            flex: 1;
+        }
+
+        /* Tabs */
+        .tabs {
+            display: flex;
+            gap: 2px;
+            margin-bottom: 10px;
+            background: #111;
+            padding: 2px;
+            border-radius: 4px;
+        }
+
+        .tab-btn {
+            flex: 1;
+            padding: 10px;
+            text-align: center;
+            background: #222;
+            color: #777;
+            cursor: pointer;
+            border: 1px solid #333;
+            font-size: 13px;
+            transition: 0.2s;
+        }
+
+        .tab-btn.active {
+            background: #eab308;
+            color: #000;
+            font-weight: bold;
+            border-color: #eab308;
+        }
+
+        .tab-btn:hover:not(.active) {
+            background: #333;
+            color: #ccc;
+        }
+
+        /* Match Card */
+        .match-card-container {
+            margin-bottom: 8px;
+        }
+
+        .match-card {
+            background: #161619;
+            border: 1px solid #2a2a2e;
+            border-radius: 4px;
+            padding: 15px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            cursor: pointer;
+            transition: 0.2s;
+        }
+
+        .match-card:hover {
+            background: #1f1f22;
+        }
+
+        .match-card.win {
+            border-left: 4px solid #ffd700;
+            background: #221e10;
+        }
+
+        .match-card.top10 {
+            border-left: 4px solid #06b6d4;
+        }
+
+        .match-card.lose {
+            border-left: 4px solid #555;
+        }
+
+        .m-info {
+            width: 140px;
+        }
+
+        .m-map {
+            font-weight: bold;
+            font-size: 15px;
+            color: #fff;
+        }
+
+        .m-mode {
+            font-size: 11px;
+            color: #777;
+            margin-top: 2px;
+        }
+
+        .m-stat {
+            width: 70px;
+            text-align: center;
+        }
+
+        .m-stat .v {
+            font-size: 18px;
+            font-weight: bold;
+            color: #eee;
+            font-family: 'Rajdhani';
+        }
+
+        .m-stat .l {
+            font-size: 10px;
+            color: #666;
+        }
+
+        .m-place {
+            font-size: 20px;
+            font-weight: bold;
+            width: 50px;
+            text-align: right;
+        }
+
+        .rank-1 {
+            color: #ffd700;
+        }
+
+        .rank-top {
+            color: #00bcd4;
+        }
+
+        /* Detail Table */
+        .match-detail {
+            display: none;
+            background: #111;
+            border: 1px solid #333;
+            border-top: none;
+            padding: 15px;
+            margin-top: -3px;
+            border-radius: 0 0 4px 4px;
+        }
+
+        .team-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 13px;
+            color: #ccc;
+        }
+
+        .team-table th {
+            text-align: center;
+            padding: 5px;
+            color: #666;
+            border-bottom: 1px solid #333;
+        }
+
+        .team-table td {
+            text-align: center;
+            padding: 8px 0;
+            border-bottom: 1px solid #222;
+        }
+
+        .my-row {
+            background: rgba(0, 188, 212, 0.05);
+        }
+
+        .ai-score-s {
+            color: #eab308;
+            font-weight: bold;
+        }
+
+        .ai-score-a {
+            color: #06b6d4;
+            font-weight: bold;
+        }
+
+        .ai-score-b {
+            color: #ccc;
+        }
+
+        .ai-score-b {
+            color: #ccc;
+        }
+
+        /* Header Search Box */
+        .header-search-form {
+            display: flex;
+            align-items: center;
+            background: #1c1c1f;
+            border: 1px solid #333;
+            border-radius: 4px;
+            padding: 5px 10px;
+        }
+
+        .center-search-form {
+            display: inline-flex;
+            align-items: center;
+            background: #1c1c1f;
+            border: 1px solid #333;
+            border-radius: 4px;
+            padding: 10px 20px;
+            margin-top: 20px;
+        }
+
+        .header-platform-toggle {
+            font-size: 13px;
+            font-weight: 700;
+            color: #fff;
+            margin-right: 10px;
+            cursor: pointer;
+            padding-right: 10px;
+            border-right: 1px solid #444;
+            user-select: none;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            width: 80px;
+            justify-content: center;
+        }
+
+        .header-search-input {
+            background: transparent;
+            border: none;
+            color: #ccc;
+            outline: none;
+            font-size: 14px;
+            width: 150px;
+        }
+
+        /* Profile Badges */
+        .badge-platform {
+            font-size: 11px;
+            padding: 3px 6px;
+            border-radius: 3px;
+            margin-right: 5px;
+            font-weight: 700;
+            text-transform: uppercase;
+        }
+
+        .badge-steam {
+            background: #333;
+            color: #fff;
+        }
+
+        .badge-kakao {
+            background: #facc15;
+            color: #000;
+        }
+    </style>
+</head>
+
+<body>
+    <header>
+        <div class="nav-left">
+            <a href="/" class="logo">GG<span>.gg</span></a>
+            <nav class="nav-menu">
+                <a href="/live">킬로그 분석 (Live)</a>
+                <span style="margin: 0 10px; color: #333;">|</span>
+                <a href="/stats" class="active">전적 검색</a>
+                <span style="margin: 0 10px; color: #333;">|</span>
+                <a href="/ranking">랭킹</a>
+            </nav>
+        </div>
+    </header>
+
+    <div class="container">
+
+        {% if data and not data.error %}
+        <!-- 상단 미니 검색 (Sticky Toggle) -->
+        <div style="display:flex; justify-content:flex-end; margin-bottom:15px;">
+            <form action="/stats" method="get" class="header-search-form" id="headerSearchForm">
+                <div id="headerToggle" class="header-platform-toggle" onclick="toggleHeaderPlatform()">
+                    STEAM <span>↻</span>
+                </div>
+                <input type="hidden" name="platform" id="headerPlatformInput" value="steam">
+                <input type="text" name="nickname" class="header-search-input" placeholder="닉네임 검색"
+                    style="background:#222; border:none;">
+            </form>
+        </div>
+
+        <!-- 1. 프로필 & 스플릿 스탯 (Real Season Data) -->
+        <!-- 1. 프로필 & 스플릿 스탯 (Real Season Data) -->
+        <div class="profile-card">
+            <div class="profile-left">
+                <div style="margin-bottom:5px;">
+                    {% if data.platform == 'kakao' %}
+                    <span class="badge-platform badge-kakao">KAKAO</span>
+                    {% else %}
+                    <span class="badge-platform badge-steam">STEAM</span>
+                    {% endif %}
+                </div>
+                <div style="display:flex; align-items:center; gap:10px;">
+                    <h1>{{ data.nickname }}</h1>
+                    {% if data.tier_icon %}
+                    <img src="{{ data.tier_icon }}" alt="Tier" style="height:40px;">
+                    {% endif %}
+
+                    <button onclick="updateStats('{{ data.nickname }}', '{{ data.platform }}')" class="update-btn">
+                        전적 갱신
+                    </button>
+                    <span style="font-size:12px; color:#888; background:none; padding:0;">
+                        최근 업데이트: {{ data.time_ago }}
+                    </span>
+                </div>
+                <div style="display:flex; gap:5px; flex-wrap:wrap; margin-top:10px;">
+                    {% for tag in data.tags %}
+                    <div
+                        style="background:{{ tag.color }}; padding:4px 8px; border-radius:4px; font-size:12px; font-weight:bold; color:#fff;">
+                        {{ tag.text }}
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <div class="split-stats">
+                <!-- 경쟁전 (5 lines: Tier, K/D, Avg Dmg, Avg Rank, Wins) -->
+                <div class="split-group">
+                    <h3>Ranked Season</h3>
+                    <div class="stat-line">
+                        <span class="label">Tier</span>
+                        <span class="value-hl" style="color:#d8b4fe">{{ data.season_summary.ranked.tier }} {{
+                            data.season_summary.ranked.sub_tier }}</span>
+                    </div>
+                    <div class="stat-line"><span class="label">K/D</span> <span class="value-hl">{{
+                            data.season_summary.ranked.kd }}</span></div>
+                    <div class="stat-line"><span class="label">Avg Dmg</span> <span class="value-hl">{{
+                            data.season_summary.ranked.avg_dmg }}</span></div>
+                    <div class="stat-line"><span class="label">Avg Rank</span> <span class="value-hl">#{{
+                            data.season_summary.ranked.avg_rank }}</span></div>
+                    <div class="stat-line"><span class="label">Wins</span> <span style="color:#fff">{{
+                            data.season_summary.ranked.wins }}</span></div>
+                    <div class="stat-line"><span class="label">Win Ratio</span> <span class="value-hl">{{
+                            data.season_summary.ranked.win_rate }}</span></div>
+                </div>
+                <!-- 일반 (5 lines: Spacer, K/D, Avg Dmg, Avg Rank, Wins) -->
+                <div class="split-group">
+                    <h3>Normal Season</h3>
+                    <div class="stat-line">
+                        <span class="label"></span>
+                        <span class="value-warn" style="visibility:hidden;">-</span> <!-- Spacer to align lines -->
+                    </div>
+                    <div class="stat-line"><span class="label">K/D</span> <span class="value-warn">{{
+                            data.season_summary.normal.kd }}</span></div>
+                    <div class="stat-line"><span class="label">Avg Dmg</span> <span class="value-warn">{{
+                            data.season_summary.normal.avg_dmg }}</span></div>
+                    <div class="stat-line"><span class="label">Avg Rank</span> <span class="value-warn">#{{
+                            data.season_summary.normal.avg_rank }}</span></div>
+                    <div class="stat-line"><span class="label">Wins</span> <span style="color:#fff">{{
+                            data.season_summary.normal.wins }}</span></div>
+                    <div class="stat-line"><span class="label">Win Ratio</span> <span class="value-warn">{{
+                            data.season_summary.normal.win_rate }}</span></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 2. 레이아웃 -->
+        <div class="content-layout">
+
+            <!-- 왼쪽 사이드바 (최근 10게임 요약) -->
+            <!-- 전체 데이터를 기준으로 한 최근 10게임 요약 -->
+            <!-- 왼쪽 사이드바 (최근 10게임 요약) -->
+            <div class="side-stats side-stats-dark">
+                <div class="side-content">
+                    <div class="side-header">최근 10 게임 평균 요약</div>
+                    <div class="avg-rank-box">
+                        <div class="avg-rank-val">#{{ data.recent_summary.avg_rank }}</div>
+                    </div>
+
+                    <div class="side-header">최근 10 게임 스탯</div>
+                    <div class="side-row"><span style="color:#888;">K/D</span><span class="side-val accent">{{
+                            data.recent_summary.kd }}</span></div>
+                    <div class="side-row"><span style="color:#888;">데미지</span><span class="side-val">{{
+                            data.recent_summary.avg_dmg }}</span></div>
+                    <div class="side-row"><span style="color:#888;">승률</span><span class="side-val">{{
+                            data.recent_summary.win_rate }}</span></div>
+                    <div class="side-row"><span style="color:#888;">생존</span><span class="side-val">{{
+                            data.recent_summary.avg_time }}</span></div>
+                </div>
+            </div>
+
+            <!-- 오른쪽 리스트 -->
+            <div class="main-list">
+                <!-- 탭 -->
+                <div class="tabs">
+                    <div class="tab-btn active" onclick="filterList('all', this)">전체</div>
+                    <div class="tab-btn" onclick="filterList('ranked', this)">경쟁전</div>
+                    <div class="tab-btn" onclick="filterList('normal', this)">스쿼드(일반)</div>
+                </div>
+
+                <div id="matchListArea">
+                    {% for match in data.matches %}
+                    {% set card_type = 'type-ranked' if match.is_ranked else 'type-normal' %}
+                    {% set rank_class = 'rank-low' %}
+                    {% set card_class = 'lose' %}
+                    {% if match.place == 1 %}
+                    {% set rank_class = 'rank-1' %}
+                    {% set card_class = 'win' %}
+                    {% elif match.place <= 10 %} {% set rank_class='rank-top' %} {% set card_class='top10' %} {% endif
+                        %} <div class="match-card-container {{ card_type }}"
+                        data-mode="{{ 'ranked' if match.is_ranked else 'normal' }}">
+                        <div class="match-card {{ card_class }}" onclick="toggleDetail(this)">
+                            <div class="m-info">
+                                <div class="m-map">{{ match.map }}</div>
+                                <div class="m-mode" style="color: {{ '#a855f7' if match.is_ranked else '#aaa' }}">{{
+                                    match.mode }}</div>
+                                <div style="font-size:11px; color:#555;">{{ match.date }}</div>
+                            </div>
+                            <div class="m-stat">
+                                <div class="v">{{ match.kills }}</div>
+                                <div class="l">Kills</div>
+                            </div>
+                            <div class="m-stat">
+                                <div class="v">{{ match.damage }}</div>
+                                <div class="l">Damage</div>
+                            </div>
+                            <div class="m-stat">
+                                <div class="v"
+                                    style="color: {{ '#eab308' if match.ai_score >= 90 else ('#06b6d4' if match.ai_score >= 70 else '#eee') }}">
+                                    {{ match.ai_score }}</div>
+                                <div class="l">AI Score</div>
+                            </div>
+                            <div class="m-stat">
+                                <div class="v">{{ match.time }}</div>
+                                <div class="l">Time</div>
+                            </div>
+                            <div class="m-place {{ rank_class }}">#{{ match.place }}</div>
+                            <div style="font-size:12px; color:#555;">▼</div>
+                        </div>
+
+                        <div class="match-detail">
+                            <table class="team-table">
+                                <thead>
+                                    <tr>
+                                        <th>Team Member</th>
+                                        <th>Kills</th>
+                                        <th>Damage</th>
+                                        <th>Survived</th>
+                                        <th>AI Score</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for member in match.team %}
+                                    <tr class="{{ 'my-row' if member.is_me else '' }}">
+                                        <td style="text-align:left; padding-left:20px;">
+                                            <a href="/stats?nickname={{ member.name }}"
+                                                style="color:inherit; text-decoration:none; transition:0.2s;"
+                                                onmouseover="this.style.color='#fff'; this.style.textDecoration='underline'"
+                                                onmouseout="this.style.color='inherit'; this.style.textDecoration='none'">
+                                                {{ member.name }}
+                                            </a>
+                                            {% if member.is_me %}<span
+                                                style="color:#00bcd4; font-size:10px; margin-left:4px;">(ME)</span>{%
+                                            endif %}
+                                        </td>
+                                        <td>{{ member.kills }}</td>
+                                        <td>{{ member.damage }}</td>
+                                        <td>{{ member.survived }}</td>
+                                        <td
+                                            class="{{ 'ai-score-s' if member.ai_score >= 90 else ('ai-score-a' if member.ai_score >= 70 else 'ai-score-b') }}">
+                                            {{ member.ai_score }}
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+
+    </div>
+
+    {% elif data and data.error == 'UserNotFound' %}
+    <div style="text-align:center; padding:100px;">
+        <h2 style="color:#ef4444;">사용자를 찾을 수 없습니다.</h2>
+        <a href="/"
+            style="display:inline-block; margin-top:20px; background:#333; padding:10px 20px; border-radius:4px;">돌아가기</a>
+    </div>
+    {% else %}
+    <div style="text-align:center; padding:100px;">
+        <h2>전적 검색</h2>
+        <form action="/stats" method="get" class="center-search-form" id="centerSearchForm">
+            <div id="centerToggle" class="header-platform-toggle" onclick="toggleCenterPlatform()"
+                style="font-size:16px; width:100px;">
+                STEAM <span>↻</span>
+            </div>
+            <input type="hidden" name="platform" id="centerPlatformInput" value="steam">
+            <input type="text" name="nickname" class="header-search-input" placeholder="닉네임 입력"
+                style="background:transparent; border:none; color:#fff; font-size:16px; width:200px;">
+        </form>
+    </div>
+    {% endif %}
+    </div>
+
+    <script>
+        function toggleDetail(card) {
+            const detail = card.nextElementSibling;
+            if (detail.style.display === 'block') {
+                detail.style.display = 'none';
+                card.style.borderRadius = '4px';
+                card.style.background = '';
+            } else {
+                detail.style.display = 'block';
+                card.style.borderRadius = '4px 4px 0 0';
+                card.style.background = '#252529';
+            }
+        }
+
+        function filterList(type, btn) {
+            // Update Buttons
+            document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+
+            // Filter Items
+            const items = document.querySelectorAll('.match-card-container');
+            items.forEach(item => {
+                const mode = item.dataset.mode; // ranked or normal
+                if (type === 'all') item.style.display = 'block';
+                else if (type === 'ranked' && mode === 'ranked') item.style.display = 'block';
+                else if (type === 'normal' && mode === 'normal') item.style.display = 'block';
+                else item.style.display = 'none';
+            });
+        }
+    </script>
+    <script>
+        // Init header toggle based on current page platform
+        const currentPlatform = "{{ data.platform }}";
+        const hInput = document.getElementById('headerPlatformInput');
+        const hToggle = document.getElementById('headerToggle');
+
+        if (currentPlatform === 'kakao') {
+            hInput.value = 'kakao';
+            hToggle.innerHTML = 'KAKAO <span>↻</span>';
+            hToggle.style.color = '#facc15';
+        } else {
+            hInput.value = 'steam';
+            hToggle.innerHTML = 'STEAM <span>↻</span>';
+            hToggle.style.color = '#fff';
+        }
+
+        function toggleHeaderPlatform() {
+            if (hInput.value === 'steam') {
+                hInput.value = 'kakao';
+                hToggle.innerHTML = 'KAKAO <span>↻</span>';
+                hToggle.style.color = '#facc15';
+            } else {
+                hInput.value = 'steam';
+                hToggle.innerHTML = 'STEAM <span>↻</span>';
+                hToggle.style.color = '#fff';
+            }
+        }
+
+        function toggleCenterPlatform() {
+            const cInput = document.getElementById('centerPlatformInput');
+            const cToggle = document.getElementById('centerToggle');
+            if (cInput.value === 'steam') {
+                cInput.value = 'kakao';
+                cToggle.innerHTML = 'KAKAO <span>↻</span>';
+                cToggle.style.color = '#facc15';
+            } else {
+                cInput.value = 'steam';
+                cToggle.innerHTML = 'STEAM <span>↻</span>';
+                cToggle.style.color = '#fff';
+            }
+        }
+
+        function updateStats(nickname, platform) {
+            const btn = document.querySelector('.update-btn');
+            btn.innerText = '갱신 중...';
+            btn.disabled = true;
+
+            fetch('/api/update_stats', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ nickname: nickname, platform: platform })
+            })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        alert('전적 갱신 완료!');
+                        location.reload();
+                    } else if (data.error === 'Cooldown') {
+                        // Silent cooldown
+                        btn.innerText = '전적 갱신';
+                        btn.disabled = false;
+                    } else {
+                        alert('오류 발생: ' + (data.message || '알 수 없는 오류'));
+                        btn.innerText = '전적 갱신';
+                        btn.disabled = false;
+                    }
+                })
+                .catch(err => {
+                    console.error(err);
+                    alert('서버 통신 오류');
+                    btn.innerText = '전적 갱신';
+                    btn.disabled = false;
+                });
+        }
+    </script>
+</body>
+
+</html>

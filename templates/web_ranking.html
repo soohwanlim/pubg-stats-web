@@ -1,0 +1,307 @@
+<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GG.gg - Ranking</title>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700&family=Rajdhani:wght@600;700&display=swap"
+        rel="stylesheet">
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            background-color: #0a0a0c;
+            color: #e0e0e0;
+            font-family: 'Noto Sans KR', sans-serif;
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+        }
+
+        a {
+            text-decoration: none;
+            color: inherit;
+            transition: 0.2s;
+        }
+
+        header {
+            width: 100%;
+            height: 60px;
+            background-color: #111114;
+            border-bottom: 1px solid #2a2a2e;
+            display: flex;
+            align-items: center;
+            padding: 0 40px;
+            position: fixed;
+            top: 0;
+            z-index: 100;
+        }
+
+        .nav-left {
+            display: flex;
+            align-items: center;
+            gap: 40px;
+        }
+
+        .logo {
+            font-family: 'Rajdhani', sans-serif;
+            font-size: 24px;
+            font-weight: 700;
+            color: #fff;
+            letter-spacing: 1px;
+        }
+
+        .logo span {
+            color: #00bcd4;
+        }
+
+        .nav-menu a {
+            font-size: 15px;
+            color: #999;
+            font-weight: 500;
+            margin-right: 20px;
+        }
+
+        .nav-menu a:hover,
+        .nav-menu a.active {
+            color: #fff;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 100px 20px 40px;
+            flex: 1;
+        }
+
+        /* Ranking Table Styles */
+        .ranking-header {
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        .ranking-header h2 {
+            font-size: 32px;
+            color: #fff;
+            margin-bottom: 20px;
+        }
+
+        .platform-tabs {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            margin-bottom: 30px;
+        }
+
+        .p-tab {
+            padding: 10px 30px;
+            background: #1c1c1f;
+            border: 1px solid #333;
+            color: #fff;
+            cursor: pointer;
+            border-radius: 4px;
+            font-weight: bold;
+            font-size: 14px;
+        }
+
+        .p-tab.active {
+            background: #fff;
+            color: #000;
+        }
+
+        .p-tab.kakao-active {
+            background: #facc15;
+            color: #000;
+            border-color: #facc15;
+        }
+
+        .ranking-table {
+            width: 100%;
+            border-collapse: collapse;
+            background: #1c1c1f;
+            border-radius: 8px;
+            overflow: hidden;
+        }
+
+        .ranking-table th {
+            background: #111;
+            padding: 15px;
+            font-size: 13px;
+            color: #888;
+            border-bottom: 1px solid #333;
+            text-align: center;
+        }
+
+        .ranking-table td {
+            padding: 15px;
+            border-bottom: 1px solid #2a2a2e;
+            text-align: center;
+            font-size: 14px;
+            color: #ddd;
+        }
+
+        .ranking-table tr:hover {
+            background: #252529;
+        }
+
+        .rank-num {
+            font-family: 'Rajdhani', sans-serif;
+            font-weight: 700;
+            font-size: 18px;
+            color: #666;
+        }
+
+        .rank-1 {
+            color: #ffd700;
+            font-size: 22px;
+        }
+
+        .rank-2 {
+            color: #c0c0c0;
+            font-size: 20px;
+        }
+
+        .rank-3 {
+            color: #cd7f32;
+            font-size: 20px;
+        }
+
+        .tier-badge {
+            font-size: 12px;
+            font-weight: bold;
+            color: #ccc;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 5px;
+        }
+
+        .tier-master {
+            color: #a855f7;
+        }
+
+        .tier-diamond {
+            color: #06b6d4;
+        }
+
+        .tier-platinum {
+            color: #3b82f6;
+        }
+
+        .tier-gold {
+            color: #eab308;
+        }
+
+        .kd-box {
+            font-weight: bold;
+        }
+
+        .kd-high {
+            color: #ef4444;
+        }
+
+        .kd-mid {
+            color: #f97316;
+        }
+    </style>
+</head>
+
+<body>
+
+    <header>
+        <div class="nav-left">
+            <a href="/" class="logo">GG<span>.gg</span></a>
+            <nav class="nav-menu">
+                <a href="/live">킬로그 분석 (Live)</a>
+                <span style="margin: 0 10px; color: #333;">|</span>
+                <a href="/stats">전적 검색</a>
+                <span style="margin: 0 10px; color: #333;">|</span>
+                <a href="/ranking" class="active">랭킹</a>
+            </nav>
+        </div>
+    </header>
+
+    <div class="container">
+
+        <div class="ranking-header">
+            <h2>상위권 랭킹 (Top 100)</h2>
+            <p style="color: #666; font-size: 13px; margin-bottom: 20px;">
+                최근 업데이트: {{ updated_at }}
+            </p>
+            <div class="platform-tabs">
+                <div class="p-tab {{ 'active' if platform == 'steam' else '' }}"
+                    onclick="location.href='/ranking?platform=steam'">STEAM</div>
+                <div class="p-tab {{ 'kakao-active' if platform == 'kakao' else '' }}"
+                    onclick="location.href='/ranking?platform=kakao'">KAKAO</div>
+            </div>
+        </div>
+
+        <table class="ranking-table">
+            <thead>
+                <tr>
+                    <th style="width: 80px;">#</th>
+                    <th>닉네임</th>
+                    <th>티어</th>
+                    <th>RP</th>
+                    <th>평균 딜량</th>
+                    <th>평균 킬</th>
+                    <th>승리</th>
+                    <th>승률</th>
+                    <th>게임 수</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% if ranking %}
+                {% for player in ranking %}
+                <tr>
+                    <td>
+                        <div
+                            class="rank-num {{ 'rank-1' if player.rank == 1 else ('rank-2' if player.rank == 2 else ('rank-3' if player.rank == 3 else '')) }}">
+                            {{ player.rank }}
+                        </div>
+                    </td>
+                    <td style="text-align: left; padding-left: 40px; font-weight: bold;">
+                        <a href="/stats?nickname={{ player.nickname }}&platform={{ platform }}">{{ player.nickname
+                            }}</a>
+                    </td>
+                    <td>
+                        <div
+                            class="tier-badge {{ 'tier-master' if player.tier == 'Master' else ('tier-diamond' if player.tier == 'Diamond' else ('tier-platinum' if player.tier == 'Platinum' else ('tier-gold' if player.tier == 'Gold' else ''))) }}">
+                            <!-- 아이콘 이미지가 있으면 여기에 -->
+                            {{ player.tier }}
+                        </div>
+                    </td>
+                    <td style="font-family:'Rajdhani'; font-weight:700;">{{ player.rp }}</td>
+                    <td style="color:#00bcd4; font-weight:bold;">{{ player.avg_dmg }}</td>
+                    <!-- K/D -> Avg Kills Change -->
+                    <td
+                        class="kd-box {{ 'kd-high' if player.avg_kills >= 3.0 else ('kd-mid' if player.avg_kills >= 1.5 else '') }}">
+                        {{ player.avg_kills }}</td>
+                    <td>{{ player.wins }}</td>
+                    <td>{{ player.win_rate }}</td>
+                    <td>{{ player.games }}</td>
+                </tr>
+                {% endfor %}
+                {% else %}
+                <tr>
+                    <td colspan="9" style="padding: 50px; color: #777;">
+                        데이터를 불러오는 중이거나 없습니다.<br>
+                        (API 요청 제한으로 인해 갱신이 지연될 수 있습니다.)
+                    </td>
+                </tr>
+                {% endif %}
+            </tbody>
+        </table>
+
+    </div>
+
+</body>
+
+</html>

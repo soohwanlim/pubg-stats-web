@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <title>PUBG Kill Log Analyzer</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js"></script>
+    <style>
+        body { background-color: #121212; color: #e0e0e0; font-family: 'Segoe UI', sans-serif; margin: 0; padding: 20px; }
+        
+        header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; border-bottom: 2px solid #333; padding-bottom: 10px; }
+        h1 { margin: 0; color: #f0a500; font-size: 24px; }
+        
+        /* 컨트롤 패널 (버튼 + 업로드) */
+        .controls { display: flex; gap: 10px; align-items: center; }
+        
+        button { padding: 8px 16px; border: none; cursor: pointer; font-weight: bold; border-radius: 5px; font-size: 14px; }
+        .btn-start { background: #28a745; color: white; }
+        .btn-stop { background: #dc3545; color: white; }
+        
+        /* 업로드 스타일 */
+        .upload-group { background: #333; padding: 5px; border-radius: 5px; display: flex; gap: 5px; }
+        input[type="file"] { color: #ccc; font-size: 12px; }
+        .btn-upload { background: #007bff; color: white; }
+
+        .container { display: flex; gap: 20px; height: 80vh; }
+        .scoreboard { flex: 3; display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 15px; overflow-y: auto; padding-right: 10px; }
+        .team-card { background: #1e1e1e; border: 1px solid #333; border-radius: 8px; padding: 15px; display: flex; flex-direction: column; justify-content: space-between; }
+        .team-card h2 { margin: 0 0 10px 0; border-bottom: 1px solid #444; padding-bottom: 5px; color: #aaa; }
+        .stat-row { display: flex; justify-content: space-between; margin-bottom: 5px; }
+        .alive { color: #28a745; font-weight: bold; }
+        .knock { color: #ffc107; font-weight: bold; }
+        .dead { color: #6c757d; }
+        .team-card.danger { border: 2px solid #ffc107; background: #2a2a1e; }
+        .team-card.wiped { opacity: 0.5; background: #000; }
+        .log-panel { flex: 2; background: #1e1e1e; border: 1px solid #333; border-radius: 8px; padding: 10px; overflow-y: auto; display: flex; flex-direction: column-reverse; }
+        .log-item { padding: 5px 10px; border-bottom: 1px solid #2a2a2a; font-size: 14px; }
+        .log-time { color: #666; font-size: 12px; margin-right: 5px; }
+        .type-kill { color: #dc3545; }
+        .type-knock { color: #ffc107; }
+        .type-alert { color: #ff8800; font-weight: bold; background: #331000; }
+        .type-sys { color: #007bff; font-style: italic; }
+    </style>
+</head>
+<body>
+
+    <header>
+        <h1>🔫 PUBG Log Analyzer</h1>
+        
+        <div class="controls">
+            <div class="upload-group">
+                <input type="file" id="captureInput" accept="image/*">
+                <button class="btn-upload" onclick="uploadCapture()">📸 설정(ROI) 이미지 업로드</button>
+            </div>
+
+            <button class="btn-start" onclick="startApp()">▶ 분석 시작</button>
+            <button class="btn-stop" onclick="stopApp()">⏹ 중지</button>
+        </div>
+    </header>
+
+    <div class="container">
+        <div class="scoreboard" id="scoreboard">
+            <div style="color:#666; padding:20px;">
+                1. 킬 로그가 잘 보이는 스크린샷을 업로드하세요.<br>
+                2. [분석 시작] 버튼을 누르세요.
+            </div>
+        </div>
+        <div class="log-panel" id="logPanel"></div>
+    </div>
+
+    <script>
+        const socket = io();
+
+        // --- [신규 기능] 파일 업로드 함수 ---
+        async function uploadCapture() {
+            const input = document.getElementById('captureInput');
+            const file = input.files[0];
+
+            if (!file) {
+                alert("업로드할 이미지 파일을 선택해주세요.");
+                return;
+            }
+
+            const formData = new FormData();
+            formData.append('file', file);
+
+            try {
+                // 서버의 /upload 주소로 파일을 보냄
+                const response = await fetch('/upload', {
+                    method: 'POST',
+                    body: formData
+                });
+                const result = await response.json();
+
+                if (result.success) {
+                    alert(result.msg); // 성공 메시지
+                    // 로그창에도 표시
+                    addLog("SYS", result.msg, "type-sys");
+                } else {
+                    alert("오류: " + result.msg);
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                alert("업로드 중 오류가 발생했습니다.");
+            }
+        }
+        // --------------------------------
+
+        function startApp() { socket.emit('start_analysis'); }
+        function stopApp() { socket.emit('stop_analysis'); }
+
+        function addLog(time, msg, typeClass) {
+            const panel = document.getElementById('logPanel');
+            const div = document.createElement('div');
+            div.className = 'log-item';
+            div.innerHTML = `<span class="log-time">[${time}]</span> <span class="${typeClass}">${msg}</span>`;
+            panel.prepend(div);
+        }
+
+        socket.on('new_log', (data) => {
+            const typeClass = data.type === 'knock' ? 'type-knock' : 'type-kill';
+            const icon = data.type === 'knock' ? '👊' : '💀';
+            const msg = `${icon} <b>T${data.killer}</b> &rarr; <b>T${data.victim}</b>`;
+            addLog(data.time, msg, typeClass);
+        });
+
+        socket.on('sys_msg', (data) => {
+            let typeClass = 'type-sys';
+            if (data.type === 'error') typeClass = 'type-kill'; // 빨간색 재활용
+            else if (data.type === 'alert') typeClass = 'type-alert';
+            
+            addLog("SYS", data.msg, typeClass);
+        });
+
+        socket.on('update_board', (teams) => {
+            const board = document.getElementById('scoreboard');
+            board.innerHTML = '';
+            const sortedIds = Object.keys(teams).sort((a,b) => parseInt(a) - parseInt(b));
+
+            sortedIds.forEach(teamId => {
+                const info = teams[teamId];
+                const knockCount = info.knocks.length;
+                const card = document.createElement('div');
+                card.className = 'team-card';
+                if (knockCount > 0) card.classList.add('danger');
+                if (info.alive === 0 && knockCount === 0) card.classList.add('wiped');
+
+                card.innerHTML = `
+                    <h2>TEAM ${teamId}</h2>
+                    <div class="stat-row"><span>생존</span> <span class="alive">${info.alive}</span></div>
+                    <div class="stat-row"><span>기절</span> <span class="knock">${knockCount}</span></div>
+                    <div class="stat-row"><span>사망</span> <span class="dead">${info.dead}</span></div>
+                `;
+                board.appendChild(card);
+            });
+        });
+    </script>
+</body>
+</html>
