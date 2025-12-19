@@ -76,9 +76,16 @@ def ranking_page():
     
     # Process timestamp 
     # If 0, it means failure or no data found
-    from datetime import datetime
+    from datetime import datetime, timedelta
     if updated_at > 0:
-        updated_str = datetime.fromtimestamp(updated_at).strftime('%Y-%m-%d %H:%M:%S')
+        # Render (Server) is UTC. We add 9 hours for KST.
+        # datetime.fromtimestamp(updated_at) might be UTC or Local depending on system.
+        # Ideally, we usually treat updated_at as UTC timestamp.
+        # updated_dt = datetime.utcfromtimestamp(updated_at) + timedelta(hours=9)
+        # But since we used time.time(), it is a unix timestamp (UTC-based).
+        # We just want to display it as KST.
+        kst_dt = datetime.utcfromtimestamp(updated_at) + timedelta(hours=9)
+        updated_str = kst_dt.strftime('%Y-%m-%d %H:%M:%S')
     else:
         updated_str = "업데이트 정보 없음"
 
