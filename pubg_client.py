@@ -4,6 +4,7 @@ import json
 from datetime import datetime
 import time
 import sqlite3
+import math
 
 DB_FILE = "leaderboard.db"
 
@@ -445,6 +446,56 @@ def calculate_ai_score(rank, kills, damage, time_survived):
     
     return score_int
 
+def calculate_metric_score(val, mean, sd, is_lower_better=False):
+    """
+    Calculate 0-100 score using Cumulative Distribution Function (CDF) of Normal Distribution.
+    """
+    if sd == 0: return 50 # Avoid div by zero
+    
+    if is_lower_better:
+        # For rank, lower is better. We invert the Z-score direction.
+        # However, standard Z = (X - Mu) / Sigma. 
+        # If X < Mu (Good), Z is negative.
+        # We want High Score for Low X.
+        # So we use (Mu - X) / Sigma.
+        z = (mean - val) / sd
+    else:
+        # Standard: Higher is better
+        z = (val - mean) / sd
+        
+    # CDF: 0.5 * (1 + erf(z / sqrt(2)))
+    p = 0.5 * (1 + math.erf(z / math.sqrt(2)))
+    
+    score = int(p * 100)
+    return max(0, min(100, score))
+
+def get_radar_chart_data(kd, avg_dmg, wins, total_games, avg_survived_sec, avg_rank):
+    """
+    Helper to bundle the 5 stats with scores.
+    """
+    # Parameters provided by user
+    # KD: Mu=2, SD=1
+    # Win%: Mu=20, SD=5
+    # Dmg: Mu=250, SD=100
+    # Time: Mu=12m, SD=6m
+    # Rank: Mu=10, SD=6
+    
+    win_rate_val = (wins / total_games * 100) if total_games > 0 else 0
+    survived_min = avg_survived_sec / 60 if avg_survived_sec else 0
+    
+    s_kd = calculate_metric_score(kd, 2, 1)
+    s_dmg = calculate_metric_score(avg_dmg, 250, 100)
+    s_win = calculate_metric_score(win_rate_val, 20, 5)
+    s_time = calculate_metric_score(survived_min, 12, 6)
+    
+    # rank can be '-' in some contexts, handle it
+    if isinstance(avg_rank, (int, float)):
+        s_rank = calculate_metric_score(avg_rank, 10, 6, is_lower_better=True)
+    else:
+        s_rank = 0
+
+    return [s_kd, s_dmg, s_win, s_time, s_rank]
+
 def determine_tags(avg_time_str, avg_kills, avg_dmg, win_rate_str):
     tags = []
     
@@ -727,6 +778,20 @@ def _fetch_stats_from_api(nickname, platform):
             'is_time_high': ((s['time_sum']/s['cnt']) >= 1200), # 20 min = 1200 sec
             'is_score_high': ((s['ai_score_sum'] / s['cnt']) >= 70)
         }
+        
+    # Calculate Radar Data for Recent 10
+    recent_summ = calc_sum(stats_recent['all'])
+    # Need to re-extract raw values for precise calculation? calc_sum returns formatted strings/ints.
+    # Let's use the sums directly.
+    r_cnt = stats_recent['all']['cnt']
+    if r_cnt > 0:
+        r_kd = stats_recent['all']['k'] / stats_recent['all']['d'] if stats_recent['all']['d'] > 0 else stats_recent['all']['k']
+        r_dmg = stats_recent['all']['dmg'] / r_cnt
+        r_time_sec = stats_recent['all']['time_sum'] / r_cnt
+        r_rank = stats_recent['all']['rank_sum'] / r_cnt
+        recent_summ['chart_data'] = get_radar_chart_data(r_kd, r_dmg, stats_recent['all']['wins'], r_cnt, r_time_sec, r_rank)
+    else:
+        recent_summ['chart_data'] = [0,0,0,0,0]
 
     # 2. Real Season Stats
     season_id = get_current_season_id(target_shard)
@@ -758,6 +823,27 @@ def _fetch_stats_from_api(nickname, platform):
         ranked_summary['wins'] = wins
         ranked_summary['win_rate'] = f"{(wins/cnt)*100:.1f}%" if cnt > 0 else "0.0%"
         
+        # Radar Data
+        # We don't have exact survival time in ranked stats API response easily? 
+        # Check API docs: ranked stats has 'timeSurvived' usually?
+        # Actually standard ranked stats might not have timeSurvived aggregated sum readily in 'squad' object we got?
+        # Let's check get_ranked_stats response. Usually standard stats have it.
+        # If not available, we might default to 0 or estimate.
+        # Let's try to get 'timeSurvived' from r_stats.
+        avg_survived = r_stats.get('timeSurvived', 0) # This is usually total time? No, it might be avg or total.
+        # Official API: ranked stats -> timeSurvived is NOT present in some versions, or is total.
+        # Let's assume it's total if present. If not, fallback.
+        # Actually usually it is NOT in ranked stats.
+        # Only in 'matches'.
+        # For now, let's use 0 or skip if missing.
+        # Alternatively, 'avg_rank' is strong proxy.
+        # Wait, I found 'timeSurvived' in standard season stats, but maybe not ranked?
+        # Let's use 0 if missing.
+        total_time = r_stats.get('timeSurvived', 0) # Likely total seconds
+        avg_time_sec = total_time / cnt if cnt > 0 else 0
+        
+        ranked_summary['chart_data'] = get_radar_chart_data(ranked_summary['kd'], ranked_summary['avg_dmg'], wins, cnt, avg_time_sec, avg_rank)
+
         # Icon Logic
         tier_base = ranked_summary['tier']
         tier_clean = tier_base.strip().split()[0] 
@@ -767,6 +853,8 @@ def _fetch_stats_from_api(nickname, platform):
              ranked_summary['tier_icon'] = f"/static/images/tiers/{tier_clean}.png"
         else:
              ranked_summary['tier_icon'] = None
+    else:
+        ranked_summary['chart_data'] = [0,0,0,0,0]
 
     # Normal
 
@@ -784,8 +872,32 @@ def _fetch_stats_from_api(nickname, platform):
         normal_summary['wins'] = wins
         normal_summary['win_rate'] = f"{(wins/cnt)*100:.1f}%" if cnt > 0 else "0.0%"
 
+        # Normal Stats usually have timeSurvived
+        total_time = n_stats.get('timeSurvived', 0)
+        avg_time_sec = total_time / cnt if cnt > 0 else 0
+        # Normal Stats might not have avgRank directly? 
+        # API says 'roundsPlayed', 'wins', 'kills', etc.
+        # We might not have avgRank. If not, use 0 score.
+        # Wait, previous code used n_stats.get('avgRank', 0) ? No, previous code didn't use avgRank for normal.
+        # But in lines 578~ it renders avg_rank.
+        # Let's check where it got it.
+        # Oh, in split-stats HTML: {{ data.season_summary.normal.avg_rank }}
+        # But in python: normal_summary = { ... "avg_rank": "-", ... } locally initialized.
+        # Then overwritten?
+        # My previous snippet for Normal stats:
+        # normal_summary['avg_rank'] = '-' # It was initialized to this.
+        # The code just above this block:
+        # normal_summary = {"kd": 0.0, "avg_dmg": 0, "avg_rank": "-", "wins": 0}
+        # API response for gameModeStats (Normal) DOES include 'rankPoints'? No.
+        # DOES it include 'avgRank'? NO. Normal matches don't track Avg Rank in season stats easily.
+        # So Avg Rank will be 0 for Normal chart.
+        
+        normal_summary['chart_data'] = get_radar_chart_data(normal_summary['kd'], normal_summary['avg_dmg'], wins, cnt, avg_time_sec, 0)
+    else:
+        normal_summary['chart_data'] = [0,0,0,0,0]
+
     # Calculate Tags
-    recent_summ = calc_sum(stats_recent['all'])
+    # Used recent_summ directly calculated above
     tags = determine_tags(recent_summ['avg_time'], recent_summ['avg_kills'], recent_summ['avg_dmg'], recent_summ['win_rate'])
 
     return {

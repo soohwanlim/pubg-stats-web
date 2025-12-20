@@ -220,7 +220,7 @@
         }
 
         .chart-bar.top10 {
-            background: #06b6d4;
+            background: #fff;
         }
 
         .chart-bar.lose {
@@ -362,7 +362,7 @@
         }
 
         .rank-top {
-            color: #F2A900;
+            color: #fff;
         }
 
         /* Detail Table */
@@ -483,6 +483,8 @@
             color: #000;
         }
     </style>
+    </style>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 
 <body>
@@ -517,6 +519,19 @@
         <!-- 1. 프로필 & 스플릿 스탯 (Real Season Data) -->
         <!-- 1. 프로필 & 스플릿 스탯 (Real Season Data) -->
         <div class="profile-card">
+            <!-- Radar Chart Area -->
+            <div style="position: relative; width: 220px; height: 220px; margin-right: 30px;">
+                <canvas id="profileRadarChart"></canvas>
+                <!-- Toggle Btn Overlay or Below -->
+                <div
+                    style="position:absolute; bottom: -30px; left: 50%; transform: translateX(-50%); display:flex; gap:5px;">
+                    <button onclick="toggleChartMode('ranked')" id="btn-chart-ranked"
+                        style="font-size:11px; padding:2px 6px; background:#F2A900; border:none; border-radius:3px; cursor:pointer; font-weight:bold;">Ranked</button>
+                    <button onclick="toggleChartMode('normal')" id="btn-chart-normal"
+                        style="font-size:11px; padding:2px 6px; background:#333; color:#aaa; border:none; border-radius:3px; cursor:pointer;">Normal</button>
+                </div>
+            </div>
+
             <div class="profile-left">
                 <div style="margin-bottom:5px;">
                     {% if data.platform == 'kakao' %}
@@ -606,6 +621,11 @@
                         <div class="avg-rank-val">#{{ data.recent_summary.avg_rank }}</div>
                     </div>
 
+                    <!-- Mini Radar Chart -->
+                    <div style="width: 100%; height: 200px; margin-bottom: 20px;">
+                        <canvas id="sideRadarChart"></canvas>
+                    </div>
+
                     <div class="side-header">최근 10 게임 스탯</div>
                     <div class="side-row"><span style="color:#888;">K/D</span><span
                             class="side-val {{ 'value-hl' if data.recent_summary.is_kd_high else '' }}"
@@ -653,7 +673,8 @@
                         <div class="match-card {{ card_class }}" onclick="toggleDetail(this)">
                             <div class="m-info">
                                 <div class="m-map">{{ match.map }}</div>
-                                <div class="m-mode" style="color: {{ '#a855f7' if match.is_ranked else '#aaa' }}">{{
+                                <div class="m-mode"
+                                    style="{{ 'color: #a855f7;' if match.is_ranked else 'color: #aaa;' }}">{{
                                     match.mode }}</div>
                                 <div style="font-size:11px; color:#555;">{{ match.date }}</div>
                             </div>
@@ -666,7 +687,8 @@
                                 <div class="l">Damage</div>
                             </div>
                             <div class="m-stat">
-                                <div class="v" style="color: {{ '#eab308' if match.ai_score >= 70 else '#eee' }}">
+                                <div class="v"
+                                    style="{{ 'color: #eab308;' if match.ai_score >= 70 else 'color: #eee;' }}">
                                     {{ match.ai_score }}</div>
                                 <div class="l">AI Score</div>
                             </div>
@@ -850,6 +872,117 @@
                     btn.disabled = false;
                 });
         }
+    </script>
+    <script>
+        // Data from Backend
+        // [KD, Dmg, Win, Time, Rank] order
+        const rankedData = {{ data.season_summary.ranked.chart_data | tojson }};
+        const normalData = {{ data.season_summary.normal.chart_data | tojson }};
+        const recentData = {{ data.recent_summary.chart_data | tojson }};
+
+        // Chart Configuration
+        const CHART_LABELS = ['K/D', 'DAMAGE', 'WIN RATE', 'SURVIVAL', 'RANK'];
+
+        // 1. Profile Radar Chart
+        const ctxProfile = document.getElementById('profileRadarChart').getContext('2d');
+        let profileChart = new Chart(ctxProfile, {
+            type: 'radar',
+            data: {
+                labels: CHART_LABELS,
+                datasets: [{
+                    label: 'Ranked Season',
+                    data: rankedData,
+                    backgroundColor: 'rgba(242, 169, 0, 0.2)', // Gold with opacity
+                    borderColor: '#F2A900',
+                    pointBackgroundColor: '#F2A900',
+                    borderWidth: 2,
+                    pointRadius: 3
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    r: {
+                        min: 0,
+                        max: 100,
+                        ticks: { display: false, stepSize: 20 },
+                        grid: { color: '#444' },
+                        angleLines: { color: '#444' },
+                        pointLabels: { color: '#888', font: { size: 10, family: 'Rajdhani' } }
+                    }
+                },
+                plugins: {
+                    legend: { display: false }
+                }
+            }
+        });
+
+        // Toggle Logic
+        function toggleChartMode(mode) {
+            const btnRanked = document.getElementById('btn-chart-ranked');
+            const btnNormal = document.getElementById('btn-chart-normal');
+
+            if (mode === 'ranked') {
+                profileChart.data.datasets[0].data = rankedData;
+                profileChart.data.datasets[0].label = 'Ranked Season';
+                profileChart.data.datasets[0].borderColor = '#F2A900';
+                profileChart.data.datasets[0].backgroundColor = 'rgba(242, 169, 0, 0.2)';
+                profileChart.data.datasets[0].pointBackgroundColor = '#F2A900';
+
+                btnRanked.style.background = '#F2A900';
+                btnRanked.style.color = '#000';
+                btnNormal.style.background = '#333';
+                btnNormal.style.color = '#aaa';
+            } else {
+                profileChart.data.datasets[0].data = normalData;
+                profileChart.data.datasets[0].label = 'Normal Season';
+                profileChart.data.datasets[0].borderColor = '#fff'; // White for Normal
+                profileChart.data.datasets[0].backgroundColor = 'rgba(255, 255, 255, 0.2)';
+                profileChart.data.datasets[0].pointBackgroundColor = '#fff';
+
+                btnRanked.style.background = '#333';
+                btnRanked.style.color = '#aaa';
+                btnNormal.style.background = '#fff'; // White button
+                btnNormal.style.color = '#000';
+            }
+            profileChart.update();
+        }
+
+        // 2. Side Mini Radar Chart (Recent 10)
+        const ctxSide = document.getElementById('sideRadarChart').getContext('2d');
+        new Chart(ctxSide, {
+            type: 'radar',
+            data: {
+                labels: CHART_LABELS,
+                datasets: [{
+                    label: 'Recent 10',
+                    data: recentData,
+                    backgroundColor: 'rgba(6, 182, 212, 0.2)', // Cyan opacity
+                    borderColor: '#06b6d4',
+                    pointBackgroundColor: '#06b6d4',
+                    borderWidth: 1,
+                    pointRadius: 2
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    r: {
+                        min: 0,
+                        max: 100,
+                        ticks: { display: false },
+                        grid: { color: '#333' },
+                        angleLines: { color: '#333' },
+                        pointLabels: { color: '#666', font: { size: 9, family: 'Rajdhani' } }
+                    }
+                },
+                plugins: {
+                    legend: { display: false }
+                }
+            }
+        });
     </script>
 </body>
 
