@@ -414,8 +414,8 @@ def calculate_ai_score(rank, kills, damage, time_survived):
     # Weights
     W_RANK = 0.2
     W_TIME = 0.1
-    W_KILL = 0.4
-    W_DMG = 0.3
+    W_KILL = 0.35
+    W_DMG = 0.35
 
     # Max reference values
     MAX_PLAYERS = 64 # Squad is usually around 64-100, let's assume team rank. 
@@ -424,8 +424,8 @@ def calculate_ai_score(rank, kills, damage, time_survived):
     # If using team rank (1-30), MAX_PLAYERS should be around 30.
     # User code snippet used MAX_PLAYERS = 31.
     MAX_TEAMS = 31
-    MAX_KILLS = 15
-    MAX_DMG = 1500
+    MAX_KILLS = 10
+    MAX_DMG = 700
     MAX_TIME = 1500 # User said 3000(30m), but 1500(25m) is more realistic for active time? User said 3000.
     # User Request: MAX_TIME = 3000
     
@@ -603,7 +603,7 @@ def _fetch_stats_from_api(nickname, platform):
 
     # Accumulators for Recent 10 (Side Box)
     stats_recent = {
-        'all': {'k':0, 'd':0, 'dmg':0, 'wins':0, 'top10':0, 'rank_sum':0, 'time_sum':0, 'cnt':0}
+        'all': {'k':0, 'd':0, 'dmg':0, 'wins':0, 'top10':0, 'rank_sum':0, 'time_sum':0, 'ai_score_sum':0, 'cnt':0}
     }
 
     MAX_SEARCH_DEPTH = 60 # Check up to 60 recent matches to find 10 squad games
@@ -689,6 +689,8 @@ def _fetch_stats_from_api(nickname, platform):
             if member['is_me']:
                 my_score = member['ai_score']
                 break
+        
+        stats_recent['all']['ai_score_sum'] += my_score
 
         match_data_list.append({
             "map": get_map_display(map_name),
@@ -705,7 +707,7 @@ def _fetch_stats_from_api(nickname, platform):
 
     # Helper for Recent 10
     def calc_sum(s):
-        if s['cnt'] == 0: return {'kd':0, 'avg_dmg':0, 'wins':0, 'avg_rank':'-', 'avg_time':'-', 'count':0, 'win_rate':'0.0%', 'avg_kills': 0}
+        if s['cnt'] == 0: return {'kd':0, 'avg_dmg':0, 'wins':0, 'avg_rank':'-', 'avg_time':'-', 'avg_ai_score': '-', 'count':0, 'win_rate':'0.0%', 'avg_kills': 0}
         kd = s['k'] / s['d'] if s['d'] > 0 else s['k']
         win_rate = (s['wins'] / s['cnt']) * 100
         return {
@@ -714,6 +716,7 @@ def _fetch_stats_from_api(nickname, platform):
             'wins': s['wins'],
             'avg_rank': round(s['rank_sum'] / s['cnt'], 1),
             'avg_time': f"{int(s['time_sum']/s['cnt'])//60}m {int(s['time_sum']/s['cnt'])%60}s",
+            'avg_ai_score': int(round(s['ai_score_sum'] / s['cnt'])),
             'count': s['cnt'],
             'win_rate': f"{win_rate:.1f}%",
             'avg_kills': round(s['k'] / s['cnt'], 1) if s['cnt'] > 0 else 0
