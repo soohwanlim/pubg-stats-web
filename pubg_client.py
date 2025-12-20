@@ -719,7 +719,13 @@ def _fetch_stats_from_api(nickname, platform):
             'avg_ai_score': int(round(s['ai_score_sum'] / s['cnt'])),
             'count': s['cnt'],
             'win_rate': f"{win_rate:.1f}%",
-            'avg_kills': round(s['k'] / s['cnt'], 1) if s['cnt'] > 0 else 0
+            'avg_kills': round(s['k'] / s['cnt'], 1) if s['cnt'] > 0 else 0,
+            # Threshold Flags
+            'is_kd_high': (kd >= 5.0),
+            'is_dmg_high': ((s['dmg']/s['cnt']) >= 500),
+            'is_win_high': (win_rate >= 30.0),
+            'is_time_high': ((s['time_sum']/s['cnt']) >= 1200), # 20 min = 1200 sec
+            'is_score_high': ((s['ai_score_sum'] / s['cnt']) >= 70)
         }
 
     # 2. Real Season Stats

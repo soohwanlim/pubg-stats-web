@@ -554,7 +554,7 @@
                     <h3>Ranked Season</h3>
                     <div class="stat-line">
                         <span class="label">Tier</span>
-                        <span class="value-hl" style="color:#d8b4fe">{{ data.season_summary.ranked.tier }} {{
+                        <span class="value-hl">{{ data.season_summary.ranked.tier }} {{
                             data.season_summary.ranked.sub_tier }}</span>
                     </div>
                     <div class="stat-line"><span class="label">K/D</span> <span class="value-hl">{{
@@ -563,7 +563,7 @@
                             data.season_summary.ranked.avg_dmg }}</span></div>
                     <div class="stat-line"><span class="label">Avg Rank</span> <span class="value-hl">#{{
                             data.season_summary.ranked.avg_rank }}</span></div>
-                    <div class="stat-line"><span class="label">Wins</span> <span style="color:#fff">{{
+                    <div class="stat-line"><span class="label">Wins</span> <span class="value-hl">{{
                             data.season_summary.ranked.wins }}</span></div>
                     <div class="stat-line"><span class="label">Win Ratio</span> <span class="value-hl">{{
                             data.season_summary.ranked.win_rate }}</span></div>
@@ -575,15 +575,19 @@
                         <span class="label"></span>
                         <span class="value-warn" style="visibility:hidden;">-</span> <!-- Spacer to align lines -->
                     </div>
-                    <div class="stat-line"><span class="label">K/D</span> <span class="value-warn">{{
+                    <div class="stat-line"><span class="label">K/D</span> <span class="value-warn"
+                            style="color:#eee;">{{
                             data.season_summary.normal.kd }}</span></div>
-                    <div class="stat-line"><span class="label">Avg Dmg</span> <span class="value-warn">{{
+                    <div class="stat-line"><span class="label">Avg Dmg</span> <span class="value-warn"
+                            style="color:#eee;">{{
                             data.season_summary.normal.avg_dmg }}</span></div>
-                    <div class="stat-line"><span class="label">Avg Rank</span> <span class="value-warn">#{{
+                    <div class="stat-line"><span class="label">Avg Rank</span> <span class="value-warn"
+                            style="color:#eee;">#{{
                             data.season_summary.normal.avg_rank }}</span></div>
-                    <div class="stat-line"><span class="label">Wins</span> <span style="color:#fff">{{
+                    <div class="stat-line"><span class="label">Wins</span> <span style="color:#eee;">{{
                             data.season_summary.normal.wins }}</span></div>
-                    <div class="stat-line"><span class="label">Win Ratio</span> <span class="value-warn">{{
+                    <div class="stat-line"><span class="label">Win Ratio</span> <span class="value-warn"
+                            style="color:#eee;">{{
                             data.season_summary.normal.win_rate }}</span></div>
                 </div>
             </div>
@@ -603,16 +607,26 @@
                     </div>
 
                     <div class="side-header">최근 10 게임 스탯</div>
-                    <div class="side-row"><span style="color:#888;">K/D</span><span class="side-val accent">{{
+                    <div class="side-row"><span style="color:#888;">K/D</span><span
+                            class="side-val {{ 'value-hl' if data.recent_summary.is_kd_high else '' }}"
+                            style="{{ 'color:#F2A900;' if data.recent_summary.is_kd_high else 'color:#eee;' }}">{{
                             data.recent_summary.kd }}</span></div>
-                    <div class="side-row"><span style="color:#888;">데미지</span><span class="side-val">{{
+                    <div class="side-row"><span style="color:#888;">데미지</span><span
+                            class="side-val {{ 'value-hl' if data.recent_summary.is_dmg_high else '' }}"
+                            style="{{ 'color:#F2A900;' if data.recent_summary.is_dmg_high else 'color:#eee;' }}">{{
                             data.recent_summary.avg_dmg }}</span></div>
-                    <div class="side-row"><span style="color:#888;">승률</span><span class="side-val">{{
+                    <div class="side-row"><span style="color:#888;">승률</span><span
+                            class="side-val {{ 'value-hl' if data.recent_summary.is_win_high else '' }}"
+                            style="{{ 'color:#F2A900;' if data.recent_summary.is_win_high else 'color:#eee;' }}">{{
                             data.recent_summary.win_rate }}</span></div>
-                    <div class="side-row"><span style="color:#888;">생존</span><span class="side-val">{{
+                    <div class="side-row"><span style="color:#888;">생존</span><span
+                            class="side-val {{ 'value-hl' if data.recent_summary.is_time_high else '' }}"
+                            style="{{ 'color:#F2A900;' if data.recent_summary.is_time_high else 'color:#eee;' }}">{{
                             data.recent_summary.avg_time }}</span></div>
-                    <div class="side-row"><span style="color:#888;">AI Score</span><span class="side-val"
-                            style="color:#F2A900;">{{ data.recent_summary.avg_ai_score }}</span></div>
+                    <div class="side-row"><span style="color:#888;">AI Score</span><span
+                            class="side-val {{ 'value-hl' if data.recent_summary.is_score_high else '' }}"
+                            style="{{ 'color:#F2A900;' if data.recent_summary.is_score_high else 'color:#eee;' }}">{{
+                            data.recent_summary.avg_ai_score }}</span></div>
                 </div>
             </div>
 
@@ -652,8 +666,7 @@
                                 <div class="l">Damage</div>
                             </div>
                             <div class="m-stat">
-                                <div class="v"
-                                    style="color: {{ '#eab308' if match.ai_score >= 90 else ('#06b6d4' if match.ai_score >= 70 else '#eee') }}">
+                                <div class="v" style="color: {{ '#eab308' if match.ai_score >= 70 else '#eee' }}">
                                     {{ match.ai_score }}</div>
                                 <div class="l">AI Score</div>
                             </div>
