@@ -624,6 +624,16 @@ def get_recent_stats(nickname, platform='steam'):
     # 1. Try DB
     cached_data, updated_at = load_player_stats_from_db(nickname, platform)
     if cached_data:
+        # Backward Compatibility: Ensure chart_data exists (for old cache)
+        if 'recent_summary' in cached_data and 'chart_data' not in cached_data['recent_summary']:
+             cached_data['recent_summary']['chart_data'] = [0,0,0,0,0]
+             
+        if 'season_summary' in cached_data:
+            if 'ranked' in cached_data['season_summary'] and 'chart_data' not in cached_data['season_summary']['ranked']:
+                cached_data['season_summary']['ranked']['chart_data'] = [0,0,0,0,0]
+            if 'normal' in cached_data['season_summary'] and 'chart_data' not in cached_data['season_summary']['normal']:
+                cached_data['season_summary']['normal']['chart_data'] = [0,0,0,0,0]
+
         # Inject timestamp for UI
         cached_data['updated_at'] = updated_at
         return cached_data
@@ -799,7 +809,8 @@ def _fetch_stats_from_api(nickname, platform):
     # Ranked
     r_stats = get_ranked_stats(account_id, season_id, target_shard)
     ranked_summary = {
-        "tier": "Unranked", "sub_tier": "", "rp": 0, "kd": 0.0, "avg_dmg": 0, "avg_rank": "-", "wins": 0
+        "tier": "Unranked", "sub_tier": "", "rp": 0, "kd": 0.0, "avg_dmg": 0, "avg_rank": "-", "wins": 0,
+        "chart_data": [0,0,0,0,0]
     }
     if r_stats:
         current_tier = r_stats.get('currentRankPoint', 0)
@@ -823,26 +834,18 @@ def _fetch_stats_from_api(nickname, platform):
         ranked_summary['wins'] = wins
         ranked_summary['win_rate'] = f"{(wins/cnt)*100:.1f}%" if cnt > 0 else "0.0%"
         
-        # Radar Data
-        # We don't have exact survival time in ranked stats API response easily? 
-        # Check API docs: ranked stats has 'timeSurvived' usually?
-        # Actually standard ranked stats might not have timeSurvived aggregated sum readily in 'squad' object we got?
-        # Let's check get_ranked_stats response. Usually standard stats have it.
-        # If not available, we might default to 0 or estimate.
-        # Let's try to get 'timeSurvived' from r_stats.
-        avg_survived = r_stats.get('timeSurvived', 0) # This is usually total time? No, it might be avg or total.
-        # Official API: ranked stats -> timeSurvived is NOT present in some versions, or is total.
-        # Let's assume it's total if present. If not, fallback.
-        # Actually usually it is NOT in ranked stats.
-        # Only in 'matches'.
-        # For now, let's use 0 or skip if missing.
-        # Alternatively, 'avg_rank' is strong proxy.
-        # Wait, I found 'timeSurvived' in standard season stats, but maybe not ranked?
-        # Let's use 0 if missing.
-        total_time = r_stats.get('timeSurvived', 0) # Likely total seconds
-        avg_time_sec = total_time / cnt if cnt > 0 else 0
-        
-        ranked_summary['chart_data'] = get_radar_chart_data(ranked_summary['kd'], ranked_summary['avg_dmg'], wins, cnt, avg_time_sec, avg_rank)
+        if avg_rank > 0:
+            # Estimate Survival Time based on Avg Rank (Linear Interpolation)
+            # Rank 1 => 25 min (1500 sec)
+            # Rank 31 => 1 min (60 sec)
+            # Formula: Time = 1500 - ( (1500 - 60) * (Rank - 1) / (31 - 1) )
+            avg_survived_sec = 1500 - ( (1440) * (avg_rank - 1) / 30 )
+            if avg_survived_sec < 0: avg_survived_sec = 0
+        else:
+             avg_survived_sec = 0
+             
+        # Use estimated time for chart
+        ranked_summary['chart_data'] = get_radar_chart_data(ranked_summary['kd'], ranked_summary['avg_dmg'], wins, cnt, avg_survived_sec, avg_rank)
 
         # Icon Logic
         tier_base = ranked_summary['tier']
@@ -857,9 +860,8 @@ def _fetch_stats_from_api(nickname, platform):
         ranked_summary['chart_data'] = [0,0,0,0,0]
 
     # Normal
-
     n_stats = get_season_stats(account_id, season_id, target_shard)
-    normal_summary = {"kd": 0.0, "avg_dmg": 0, "avg_rank": "-", "wins": 0}
+    normal_summary = {"kd": 0.0, "avg_dmg": 0, "avg_rank": "-", "wins": 0, "chart_data": [0,0,0,0,0]}
     if n_stats:
         deaths = n_stats.get('losses', 0)
         kills = n_stats.get('kills', 0)

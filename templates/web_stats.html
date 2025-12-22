@@ -93,10 +93,19 @@
             margin-bottom: 20px;
         }
 
+        .profile-left {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            flex-shrink: 0;
+            min-width: 250px;
+        }
+
         .profile-left h1 {
             font-family: 'Rajdhani', sans-serif;
             font-size: 40px;
             color: #fff;
+            margin: 0;
         }
 
         .profile-left span {
@@ -519,18 +528,7 @@
         <!-- 1. 프로필 & 스플릿 스탯 (Real Season Data) -->
         <!-- 1. 프로필 & 스플릿 스탯 (Real Season Data) -->
         <div class="profile-card">
-            <!-- Radar Chart Area -->
-            <div style="position: relative; width: 220px; height: 220px; margin-right: 30px;">
-                <canvas id="profileRadarChart"></canvas>
-                <!-- Toggle Btn Overlay or Below -->
-                <div
-                    style="position:absolute; bottom: -30px; left: 50%; transform: translateX(-50%); display:flex; gap:5px;">
-                    <button onclick="toggleChartMode('ranked')" id="btn-chart-ranked"
-                        style="font-size:11px; padding:2px 6px; background:#F2A900; border:none; border-radius:3px; cursor:pointer; font-weight:bold;">Ranked</button>
-                    <button onclick="toggleChartMode('normal')" id="btn-chart-normal"
-                        style="font-size:11px; padding:2px 6px; background:#333; color:#aaa; border:none; border-radius:3px; cursor:pointer;">Normal</button>
-                </div>
-            </div>
+
 
             <div class="profile-left">
                 <div style="margin-bottom:5px;">
@@ -563,49 +561,65 @@
                 </div>
             </div>
 
-            <div class="split-stats">
-                <!-- 경쟁전 (5 lines: Tier, K/D, Avg Dmg, Avg Rank, Wins) -->
-                <div class="split-group">
-                    <h3>Ranked Season</h3>
-                    <div class="stat-line">
-                        <span class="label">Tier</span>
-                        <span class="value-hl">{{ data.season_summary.ranked.tier }} {{
-                            data.season_summary.ranked.sub_tier }}</span>
+            <!-- Right Side Wrapper (Chart + Stats) -->
+            <div style="display:flex; align-items:center; gap:20px;">
+                <!-- Radar Chart Area -->
+                <div style="position: relative; width: 220px; height: 220px;">
+                    <canvas id="profileRadarChart"></canvas>
+                    <div
+                        style="position:absolute; bottom: -30px; left: 50%; transform: translateX(-50%); display:flex; gap:5px;">
+                        <button onclick="toggleChartMode('ranked')" id="btn-chart-ranked"
+                            style="font-size:11px; padding:2px 6px; background:#F2A900; border:none; border-radius:3px; cursor:pointer; font-weight:bold;">Ranked</button>
+                        <button onclick="toggleChartMode('normal')" id="btn-chart-normal"
+                            style="font-size:11px; padding:2px 6px; background:#333; color:#aaa; border:none; border-radius:3px; cursor:pointer;">Normal</button>
                     </div>
-                    <div class="stat-line"><span class="label">K/D</span> <span class="value-hl">{{
-                            data.season_summary.ranked.kd }}</span></div>
-                    <div class="stat-line"><span class="label">Avg Dmg</span> <span class="value-hl">{{
-                            data.season_summary.ranked.avg_dmg }}</span></div>
-                    <div class="stat-line"><span class="label">Avg Rank</span> <span class="value-hl">#{{
-                            data.season_summary.ranked.avg_rank }}</span></div>
-                    <div class="stat-line"><span class="label">Wins</span> <span class="value-hl">{{
-                            data.season_summary.ranked.wins }}</span></div>
-                    <div class="stat-line"><span class="label">Win Ratio</span> <span class="value-hl">{{
-                            data.season_summary.ranked.win_rate }}</span></div>
                 </div>
-                <!-- 일반 (5 lines: Spacer, K/D, Avg Dmg, Avg Rank, Wins) -->
-                <div class="split-group">
-                    <h3>Normal Season</h3>
-                    <div class="stat-line">
-                        <span class="label"></span>
-                        <span class="value-warn" style="visibility:hidden;">-</span> <!-- Spacer to align lines -->
+
+                <!-- Stats Text -->
+                <div class="split-stats">
+                    <!-- 경쟁전 (5 lines: Tier, K/D, Avg Dmg, Avg Rank, Wins) -->
+                    <div class="split-group">
+                        <h3>Ranked Season</h3>
+                        <div class="stat-line">
+                            <span class="label">Tier</span>
+                            <span class="value-hl">{{ data.season_summary.ranked.tier }} {{
+                                data.season_summary.ranked.sub_tier }}</span>
+                        </div>
+                        <div class="stat-line"><span class="label">K/D</span> <span class="value-hl">{{
+                                data.season_summary.ranked.kd }}</span></div>
+                        <div class="stat-line"><span class="label">Avg Dmg</span> <span class="value-hl">{{
+                                data.season_summary.ranked.avg_dmg }}</span></div>
+                        <div class="stat-line"><span class="label">Avg Rank</span> <span class="value-hl">#{{
+                                data.season_summary.ranked.avg_rank }}</span></div>
+                        <div class="stat-line"><span class="label">Wins</span> <span class="value-hl">{{
+                                data.season_summary.ranked.wins }}</span></div>
+                        <div class="stat-line"><span class="label">Win Ratio</span> <span class="value-hl">{{
+                                data.season_summary.ranked.win_rate }}</span></div>
                     </div>
-                    <div class="stat-line"><span class="label">K/D</span> <span class="value-warn"
-                            style="color:#eee;">{{
-                            data.season_summary.normal.kd }}</span></div>
-                    <div class="stat-line"><span class="label">Avg Dmg</span> <span class="value-warn"
-                            style="color:#eee;">{{
-                            data.season_summary.normal.avg_dmg }}</span></div>
-                    <div class="stat-line"><span class="label">Avg Rank</span> <span class="value-warn"
-                            style="color:#eee;">#{{
-                            data.season_summary.normal.avg_rank }}</span></div>
-                    <div class="stat-line"><span class="label">Wins</span> <span style="color:#eee;">{{
-                            data.season_summary.normal.wins }}</span></div>
-                    <div class="stat-line"><span class="label">Win Ratio</span> <span class="value-warn"
-                            style="color:#eee;">{{
-                            data.season_summary.normal.win_rate }}</span></div>
+                    <!-- 일반 (5 lines: Spacer, K/D, Avg Dmg, Avg Rank, Wins) -->
+                    <div class="split-group">
+                        <h3>Normal Season</h3>
+                        <div class="stat-line">
+                            <span class="label"></span>
+                            <span class="value-warn" style="visibility:hidden;">-</span> <!-- Spacer to align lines -->
+                        </div>
+                        <div class="stat-line"><span class="label">K/D</span> <span class="value-warn"
+                                style="color:#eee;">{{
+                                data.season_summary.normal.kd }}</span></div>
+                        <div class="stat-line"><span class="label">Avg Dmg</span> <span class="value-warn"
+                                style="color:#eee;">{{
+                                data.season_summary.normal.avg_dmg }}</span></div>
+                        <div class="stat-line"><span class="label">Avg Rank</span> <span class="value-warn"
+                                style="color:#eee;">#{{
+                                data.season_summary.normal.avg_rank }}</span></div>
+                        <div class="stat-line"><span class="label">Wins</span> <span style="color:#eee;">{{
+                                data.season_summary.normal.wins }}</span></div>
+                        <div class="stat-line"><span class="label">Win Ratio</span> <span class="value-warn"
+                                style="color:#eee;">{{
+                                data.season_summary.normal.win_rate }}</span></div>
+                    </div>
                 </div>
-            </div>
+            </div> <!-- End Right Wrapper -->
         </div>
 
         <!-- 2. 레이아웃 -->
@@ -853,7 +867,7 @@
                 .then(response => response.json())
                 .then(data => {
                     if (data.success) {
-                        alert('전적 갱신 완료!');
+                        // alert('전적 갱신 완료!'); // Silent update
                         location.reload();
                     } else if (data.error === 'Cooldown') {
                         // Silent cooldown
@@ -874,6 +888,7 @@
         }
     </script>
     <script>
+        {% if data and not data.error %}
         // Data from Backend
         // [KD, Dmg, Win, Time, Rank] order
         const rankedData = {{ data.season_summary.ranked.chart_data | tojson }};
@@ -983,6 +998,7 @@
                 }
             }
         });
+        {% endif %}
     </script>
 </body>
 
